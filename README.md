@@ -1,18 +1,49 @@
+<div align="center">
+
 # GFI Scout
 
-> MCP server that finds open source issues where beginners actually succeed — not just any issue labeled "good first issue".
+**An MCP server that finds open source issues where beginners actually succeed — not just any issue tagged `good first issue`.**
 
-GFI Scout analyzes repository health, maintainer responsiveness, and issue freshness so you stop wasting time on dead issues in abandoned repos. Built on FastMCP (Python), so it works with any MCP-compatible client: Claude Desktop, Cursor, VS Code Copilot, Windsurf, or custom agents.
+[![CI](https://github.com/Rajveerx11/gfi-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajveerx11/gfi-scout/actions/workflows/ci.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Built with uv](https://img.shields.io/badge/built%20with-uv-261230.svg)](https://docs.astral.sh/uv/)
+[![MCP](https://img.shields.io/badge/protocol-MCP-7c3aed.svg)](https://modelcontextprotocol.io/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-**Status:** Phase 1 MVP — the `find_issues` tool is live; smart scoring and multi-platform support land in later phases. See `Plan.md` for the full roadmap.
+</div>
+
+---
+
+## Why this exists
+
+Most "good first issue" finders are glorified GitHub search wrappers. They happily hand you issues from abandoned repos, issues already claimed by three other contributors, and issues maintainers will never review.
+
+**GFI Scout ranks results by *likelihood of success*** — repo health, merge rate, maintainer responsiveness, issue freshness, and setup complexity all feed a composite `beginner_score` (0-100). The dead repos sink to the bottom.
+
+It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server, so it plugs into Claude Desktop, Cursor, VS Code Copilot, Windsurf, or any custom agent.
+
+---
+
+## Features
+
+- 🔎 **`find_issues`** — language + topic + star-range search with a scored, ranked result list
+- 🩺 **`check_repo_health`** — merge rate, last commit, CONTRIBUTING/CoC/CI probes → A-F grade
+- ⏱️ **`check_issue_status`** — assignment, linked PRs, staleness, maintainer confirmation → `AVAILABLE` / `LIKELY_TAKEN` / `STALE` verdict
+- 📘 **`get_contribution_guide`** — pulls and summarises `CONTRIBUTING.md`, detects toolchain, estimates setup complexity
+- ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache so a `find_issues` call rarely costs more than a handful of requests
+- 🎛️ All scoring weights and thresholds live in [`config/scoring_weights.json`](config/scoring_weights.json) — no magic numbers in code
+- 🧪 67 tests (unit + integration), `mypy --strict` clean, `ruff` clean
 
 ---
 
 ## Requirements
 
-- Python **3.12+**
-- [`uv`](https://docs.astral.sh/uv/) (all dependency, venv, and script commands go through `uv`)
-- A GitHub Personal Access Token with **`public_repo`** scope (read-only is enough)
+| | |
+|---|---|
+| Python | **3.12+** |
+| Package manager | [`uv`](https://docs.astral.sh/uv/) (all commands go through `uv`) |
+| Auth | GitHub Personal Access Token with **`public_repo`** scope (read-only) |
 
 ---
 
@@ -23,16 +54,16 @@ GFI Scout analyzes repository health, maintainer responsiveness, and issue fresh
 git clone https://github.com/Rajveerx11/gfi-scout.git
 cd gfi-scout
 
-# Install uv (skip if you already have it)
+# Install uv (skip if you have it)
+# macOS / Linux:        curl -LsSf https://astral.sh/uv/install.sh | sh
 # Windows (PowerShell): irm https://astral.sh/uv/install.ps1 | iex
-# macOS / Linux:         curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies (creates .venv automatically)
 uv sync
 
 # Configure environment
 cp .env.example .env
-# then edit .env and paste your GitHub token
+# edit .env and paste your GitHub token
 
 # Run the MCP server (stdio transport)
 uv run gfi-scout
@@ -40,26 +71,18 @@ uv run gfi-scout
 
 ---
 
-## Available tools (Phase 1)
+## Connecting to an MCP client
 
-| Tool | Purpose |
-|---|---|
-| `find_issues` | Search GitHub for beginner-friendly issues filtered by language, star range, labels, and topic. Returns title, URL, body preview, repo, labels, and assignment status. |
+### Claude Desktop
 
-Future phases will add `check_repo_health`, `check_issue_status`, and `get_contribution_guide` (see `Plan.md`).
-
----
-
-## Connecting to Claude Desktop
-
-Add this to your Claude Desktop config (`claude_desktop_config.json`):
+Add this to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "gfi-scout": {
       "command": "uv",
-      "args": ["run", "--directory", "C:/gfi-scout", "gfi-scout"],
+      "args": ["run", "--directory", "/absolute/path/to/gfi-scout", "gfi-scout"],
       "env": {
         "GITHUB_TOKEN": "ghp_your_token_here"
       }
@@ -68,48 +91,126 @@ Add this to your Claude Desktop config (`claude_desktop_config.json`):
 }
 ```
 
-Restart Claude Desktop, then ask: *"Find me good first issues in Python."*
+Restart Claude Desktop, then try:
+
+> *"Find me Python good first issues with at least 500 stars."*
+>
+> *"Is this issue actually available? https://github.com/fastapi/fastapi/issues/12345"*
+>
+> *"What's the setup complexity for `pallets/flask`?"*
+
+### Other clients
+
+Cursor, Windsurf, and VS Code Copilot each support MCP servers — point them at the same `uv run` command. Detailed steps in [`docs/SETUP.md`](docs/SETUP.md).
+
+---
+
+## MCP tools
+
+| Tool | What it does |
+|---|---|
+| [`find_issues`](docs/TOOLS_REFERENCE.md#find_issues) | Scored search for beginner-friendly issues |
+| [`check_repo_health`](docs/TOOLS_REFERENCE.md#check_repo_health) | A-F grade for a repository's contributor-friendliness |
+| [`check_issue_status`](docs/TOOLS_REFERENCE.md#check_issue_status) | Is this specific issue actually available to work on? |
+| [`get_contribution_guide`](docs/TOOLS_REFERENCE.md#get_contribution_guide) | Pulls + summarises `CONTRIBUTING.md` / README setup |
+
+See [`docs/TOOLS_REFERENCE.md`](docs/TOOLS_REFERENCE.md) for full parameter and return-shape specs.
+
+---
+
+## How scoring works
+
+```
+beginner_score = repo_health        × 0.30
+               + issue_freshness    × 0.20
+               + issue_clarity      × 0.15
+               + merge_friendliness × 0.25
+               + setup_complexity_inv × 0.10
+```
+
+Every weight and threshold is loaded from [`config/scoring_weights.json`](config/scoring_weights.json). Want to retune the ranker? Edit the JSON and re-run — no code changes.
+
+Full breakdown in [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md).
+
+---
+
+## Documentation
+
+| Doc | What's in it |
+|---|---|
+| [`docs/SETUP.md`](docs/SETUP.md) | Step-by-step install, env vars, client wiring |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layering rules, request flow, caching, failure model |
+| [`docs/TOOLS_REFERENCE.md`](docs/TOOLS_REFERENCE.md) | Parameters and return schemas for every MCP tool |
+| [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md) | How `beginner_score` is computed and graded |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to file issues and ship PRs |
+| [`SECURITY.md`](SECURITY.md) | Responsible-disclosure policy |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Release notes |
+| [`Plan.md`](Plan.md) | Original spec + phase plan |
 
 ---
 
 ## Development
 
 ```bash
-# Lint and format
-uv run ruff check src/ tests/
-uv run ruff format src/ tests/
-
-# Type-check
-uv run mypy src/
-
-# Run tests
-uv run pytest
-
-# Open the MCP Inspector for local debugging
-uv run mcp dev src/gfi_scout/server.py
+uv sync                              # install everything
+uv run pytest                        # 67 tests in ~2 s
+uv run ruff check src/ tests/        # lint
+uv run ruff format src/ tests/       # format
+uv run mypy src/                     # strict type-check
+uv run mcp dev src/gfi_scout/server.py  # MCP Inspector
 ```
 
-The `uv.lock` file is committed so every contributor gets identical dependency versions.
+`uv.lock` is committed — every contributor gets identical dependency versions.
 
----
-
-## Project structure
+### Project layout
 
 ```
 src/gfi_scout/
-├── server.py         # FastMCP server + tool registration
-├── config.py         # Env loading & constants
-├── tools/            # One file per MCP tool
-├── services/         # GitHub client, cache stub, scoring (later)
-├── models/           # Pydantic models
-└── utils/            # Pure helpers
-tests/                # pytest mirrors src/ layout
+├── server.py          # FastMCP entry, tool registration
+├── config.py          # Env loading
+├── tools/             # One file per MCP tool
+│   ├── find_issues.py
+│   ├── check_repo_health.py
+│   ├── check_issue_status.py
+│   └── get_contribution_guide.py
+├── services/          # GitHub/GitLab clients, scoring, cache
+├── models/            # Pydantic models
+└── utils/             # Pure helpers (validators, rate limiter, logger)
+
+tests/                 # mirrors src/ layout
+config/                # tunable JSON (scoring weights, defaults)
+docs/                  # markdown docs
+scripts/               # dev automation (setup.sh, seed_cache.py)
 ```
 
-See `Plan.md` for the full specification, folder rules, and phase breakdown.
+Layer rules and folder contracts: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## Contributing
+
+Issues and PRs welcome — practising what we preach. Start at [`CONTRIBUTING.md`](CONTRIBUTING.md). Good first issues are labelled on the [tracker](https://github.com/Rajveerx11/gfi-scout/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+
+By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+## Security
+
+Found a security issue? Please **don't** open a public issue — see [`SECURITY.md`](SECURITY.md) for the disclosure process.
+
+GFI Scout only ever needs `public_repo` (read-only) scope on your GitHub token.
 
 ---
 
 ## License
 
-MIT — because the whole point is helping people contribute to open source.
+[MIT](LICENSE) — because the whole point is helping people contribute to open source.
+
+---
+
+<div align="center">
+
+*Built with frustration, then determination. Because finding your first open source contribution shouldn't require a PhD in "how to navigate GitHub."*
+
+</div>

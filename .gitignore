@@ -8,9 +8,10 @@ wheels/
 
 # Virtual environments
 .venv/
+venv/
+env/
 
-# uv
-# (uv.lock is committed)
+# uv (uv.lock is committed)
 
 # Tool caches
 .pytest_cache/
@@ -19,16 +20,24 @@ wheels/
 .coverage
 .coverage.*
 htmlcov/
+.tox/
 
 # Secrets / env
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
 
-# IDE
+# IDE / editors
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 .DS_Store
 Thumbs.db
+
+# Local agent / tool state
+.claude/settings.local.json
+.aider*
