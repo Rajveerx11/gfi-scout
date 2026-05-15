@@ -8,7 +8,7 @@ produces a `RepoHealth` payload. All thresholds come from
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from statistics import mean
 from typing import Any
 
@@ -42,7 +42,7 @@ def _parse_dt(value: Any) -> datetime | None:
     if value is None:
         return None
     if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
     if isinstance(value, str):
         try:
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -56,7 +56,9 @@ def _hours_between(a: datetime, b: datetime) -> float:
 
 
 async def _probe_first_existing(
-    client: GitHubClient, repo: str, paths: tuple[str, ...],
+    client: GitHubClient,
+    repo: str,
+    paths: tuple[str, ...],
 ) -> bool:
     for path in paths:
         if await client.path_exists(repo, path):
@@ -74,8 +76,7 @@ async def _has_ci(client: GitHubClient, repo: str) -> bool:
 def _compute_pr_signals(pulls: list[dict[str, Any]]) -> dict[str, float | None]:
     """From a list of recent (closed) PRs compute merge_rate + avg times."""
     if not pulls:
-        return {"merge_rate": None, "avg_review_time_hours": None,
-                "avg_merge_time_hours": None}
+        return {"merge_rate": None, "avg_review_time_hours": None, "avg_merge_time_hours": None}
     merged_count = sum(1 for pr in pulls if pr.get("merged_at"))
     merge_rate = merged_count / len(pulls)
 
@@ -113,7 +114,7 @@ def _grade_from_signals(
     has_ci: bool,
 ) -> str:
     """Map a small set of strong signals to an A-F grade."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     commit_age_days = (now - last_commit).days if last_commit else None
 
     if commit_age_days is None or commit_age_days >= cfg.stale_repo_commit_days:
@@ -126,11 +127,7 @@ def _grade_from_signals(
         and has_ci
     ):
         return "A"
-    if (
-        commit_age_days <= 30
-        and (merge_rate or 0.0) >= 0.5
-        and has_contributing
-    ):
+    if commit_age_days <= 30 and (merge_rate or 0.0) >= 0.5 and has_contributing:
         return "B"
     if commit_age_days <= 60 and (merge_rate or 0.0) >= cfg.low_merge_rate:
         return "C"
@@ -157,10 +154,8 @@ async def analyse_repo(
     pulls_task = asyncio.create_task(
         client.list_pulls(repo_full_name, state="closed", per_page=pr_sample_size)
     )
-    contributors_task = asyncio.create_task(
-        client.list_contributors(repo_full_name, per_page=100)
-    )
-    since = datetime.now(timezone.utc) - timedelta(days=contributor_window_days)
+    contributors_task = asyncio.create_task(client.list_contributors(repo_full_name, per_page=100))
+    since = datetime.now(UTC) - timedelta(days=contributor_window_days)
     commits_task = asyncio.create_task(
         client.list_commits(repo_full_name, since_iso=since.isoformat(), per_page=100)
     )
@@ -184,9 +179,7 @@ async def analyse_repo(
 
     last_commit = _parse_dt(summary.pushed_at)
     if commits:
-        commit_date = _parse_dt(
-            commits[0].get("commit", {}).get("author", {}).get("date")
-        )
+        commit_date = _parse_dt(commits[0].get("commit", {}).get("author", {}).get("date"))
         if commit_date and (last_commit is None or commit_date > last_commit):
             last_commit = commit_date
 

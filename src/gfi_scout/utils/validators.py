@@ -27,9 +27,7 @@ def validate_language(language: str) -> str:
     if len(cleaned) > LANGUAGE_MAX_LENGTH:
         raise ValidationError(f"language too long (>{LANGUAGE_MAX_LENGTH} chars)")
     if not all(c.isalnum() or c in "+-#." for c in cleaned):
-        raise ValidationError(
-            "language may only contain alphanumerics and '+', '-', '#', '.'"
-        )
+        raise ValidationError("language may only contain alphanumerics and '+', '-', '#', '.'")
     return cleaned
 
 
@@ -61,9 +59,7 @@ def validate_repo_full_name(repo: str) -> str:
             raise ValidationError("URL must include owner/repo")
         raw = f"{parts[0]}/{parts[1]}"
     if not REPO_NAME_RE.match(raw):
-        raise ValidationError(
-            f"repo must be 'owner/name' with safe characters, got {repo!r}"
-        )
+        raise ValidationError(f"repo must be 'owner/name' with safe characters, got {repo!r}")
     return raw
 
 
@@ -73,7 +69,5 @@ def parse_issue_url(url: str) -> tuple[str, int]:
         raise ValidationError("issue_url must be a string")
     match = ISSUE_URL_RE.match(url.strip())
     if not match:
-        raise ValidationError(
-            "issue_url must look like https://github.com/owner/repo/issues/N"
-        )
+        raise ValidationError("issue_url must look like https://github.com/owner/repo/issues/N")
     return match.group(1), int(match.group(2))

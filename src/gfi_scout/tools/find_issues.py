@@ -61,7 +61,8 @@ def _body_preview(raw_body: str | None) -> str:
 
 
 def _sort_results(
-    results: list[IssueResult], sort_by: str,
+    results: list[IssueResult],
+    sort_by: str,
 ) -> list[IssueResult]:
     if sort_by == "freshness":
         return sorted(results, key=lambda r: r.updated_at, reverse=True)
@@ -74,7 +75,9 @@ def _sort_results(
         )
     # default: beginner_score
     return sorted(
-        results, key=lambda r: r.beginner_score or 0, reverse=True,
+        results,
+        key=lambda r: r.beginner_score or 0,
+        reverse=True,
     )
 
 
@@ -183,13 +186,16 @@ async def find_issues(
     effective_cfg = cfg
     if enable_scoring:
         from gfi_scout.services.scoring_config import get_scoring_config
+
         effective_cfg = cfg or get_scoring_config()
-        unique_repos = sorted({
-            _repo_full_name_from_repository_url(str(item.repository_url))
-            for item in items
-        })
+        unique_repos = sorted(
+            {_repo_full_name_from_repository_url(str(item.repository_url)) for item in items}
+        )
         healths = await _gather_repo_health(
-            client, unique_repos, cfg=effective_cfg, concurrency=health_concurrency,
+            client,
+            unique_repos,
+            cfg=effective_cfg,
+            concurrency=health_concurrency,
         )
 
     results: list[IssueResult] = []

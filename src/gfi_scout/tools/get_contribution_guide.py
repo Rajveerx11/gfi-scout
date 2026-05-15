@@ -33,19 +33,43 @@ PR_SECTION_RE = re.compile(
     re.IGNORECASE,
 )
 TOOL_KEYWORDS = (
-    "node", "npm", "pnpm", "yarn", "bun",
-    "python", "uv", "pip", "poetry",
-    "go", "rust", "cargo", "make", "docker",
-    "java", "maven", "gradle", "ruby", "bundler",
+    "node",
+    "npm",
+    "pnpm",
+    "yarn",
+    "bun",
+    "python",
+    "uv",
+    "pip",
+    "poetry",
+    "go",
+    "rust",
+    "cargo",
+    "make",
+    "docker",
+    "java",
+    "maven",
+    "gradle",
+    "ruby",
+    "bundler",
 )
 COMPLEXITY_HINTS_HARD = (
-    "docker compose", "kubernetes", "kafka",
-    "postgres", "mysql", "redis cluster",
-    "multiple services", "submodule",
+    "docker compose",
+    "kubernetes",
+    "kafka",
+    "postgres",
+    "mysql",
+    "redis cluster",
+    "multiple services",
+    "submodule",
 )
 COMPLEXITY_HINTS_MODERATE = (
-    "docker", "database", "redis", "env file",
-    "compile", "build step",
+    "docker",
+    "database",
+    "redis",
+    "env file",
+    "compile",
+    "build step",
 )
 BULLET_RE = re.compile(r"^[\s>]*[-*+\d.]+\s+(.+)$")
 
@@ -114,7 +138,9 @@ def _summarise(text: str, *, limit_chars: int = 600) -> str:
 
 
 async def _fetch_first_existing(
-    client: GitHubClient, repo: str, paths: tuple[str, ...],
+    client: GitHubClient,
+    repo: str,
+    paths: tuple[str, ...],
 ) -> tuple[str | None, str | None]:
     for path in paths:
         text = await client.get_content_text(repo, path)
@@ -132,10 +158,14 @@ async def get_contribution_guide(
     log.info("get_contribution_guide repo=%s", full_name)
 
     contributing_text, contributing_path = await _fetch_first_existing(
-        client, full_name, CONTRIBUTING_PATHS,
+        client,
+        full_name,
+        CONTRIBUTING_PATHS,
     )
     readme_text, readme_path = await _fetch_first_existing(
-        client, full_name, README_PATHS,
+        client,
+        full_name,
+        README_PATHS,
     )
 
     primary = contributing_text or readme_text or ""

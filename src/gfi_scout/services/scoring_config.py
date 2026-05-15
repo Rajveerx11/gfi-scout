@@ -7,9 +7,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-DEFAULT_PATH = (
-    Path(__file__).resolve().parents[3] / "config" / "scoring_weights.json"
-)
+DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "scoring_weights.json"
 
 
 class ScoringConfigError(RuntimeError):
@@ -63,14 +61,21 @@ def load_scoring_config(path: Path | None = None) -> ScoringConfig:
     weights = raw.get("weights")
     thresholds = raw.get("thresholds")
     grades = raw.get("grade_cutoffs")
-    if not isinstance(weights, dict) or not isinstance(thresholds, dict) \
-            or not isinstance(grades, dict):
+    if (
+        not isinstance(weights, dict)
+        or not isinstance(thresholds, dict)
+        or not isinstance(grades, dict)
+    ):
         raise ScoringConfigError("scoring config missing weights/thresholds/grades")
 
     total = sum(
-        _require_float(weights, k) for k in (
-            "repo_health", "issue_freshness", "issue_clarity",
-            "merge_friendliness", "setup_complexity_inv",
+        _require_float(weights, k)
+        for k in (
+            "repo_health",
+            "issue_freshness",
+            "issue_clarity",
+            "merge_friendliness",
+            "setup_complexity_inv",
         )
     )
     if not 0.99 <= total <= 1.01:

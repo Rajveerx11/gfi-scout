@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from gfi_scout.models.issue import IssueStatus
@@ -16,13 +16,14 @@ log = get_logger(__name__)
 
 MAINTAINER_ASSOC = {"OWNER", "MEMBER", "COLLABORATOR"}
 LINKED_PR_RE = re.compile(
-    r"\b(closes|fixes|resolves)\s+#(\d+)\b", re.IGNORECASE,
+    r"\b(closes|fixes|resolves)\s+#(\d+)\b",
+    re.IGNORECASE,
 )
 
 
 def _parse_dt(value: Any) -> datetime | None:
     if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
     if isinstance(value, str):
         try:
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -92,7 +93,7 @@ async def check_issue_status(
     if last_activity is None:
         is_stale = True
     else:
-        age_days = (datetime.now(timezone.utc) - last_activity).days
+        age_days = (datetime.now(UTC) - last_activity).days
         is_stale = age_days >= cfg.stale_issue_days
 
     maintainer_confirmed = False

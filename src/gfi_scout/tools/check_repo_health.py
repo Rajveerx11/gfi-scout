@@ -27,5 +27,8 @@ async def check_repo_health(
     full_name = validate_repo_full_name(repo)
     log.info("check_repo_health repo=%s", full_name)
     return await analyse_repo(
-        client, full_name, cfg=cfg, pr_sample_size=pr_sample_size,
+        client,
+        full_name,
+        cfg=cfg,
+        pr_sample_size=pr_sample_size,
     )

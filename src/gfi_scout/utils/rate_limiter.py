@@ -35,7 +35,8 @@ class RateLimiter:
                 now = time.monotonic()
                 elapsed = now - self._last_refill
                 self._tokens = min(
-                    self._capacity, self._tokens + elapsed * self._fill_rate,
+                    self._capacity,
+                    self._tokens + elapsed * self._fill_rate,
                 )
                 self._last_refill = now
                 if self._tokens >= 1.0:

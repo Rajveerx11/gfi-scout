@@ -7,7 +7,7 @@ single composite (0-100). All weights and thresholds live in
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from gfi_scout.models.issue import GitHubIssueRaw
 from gfi_scout.models.repo import RepoHealth
@@ -18,11 +18,11 @@ GRADE_TO_SCORE = {"A": 95.0, "B": 80.0, "C": 60.0, "D": 40.0, "F": 15.0}
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _to_utc(dt: datetime) -> datetime:
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 def repo_health_subscore(health: RepoHealth | None) -> float:
@@ -142,7 +142,10 @@ def compute_beginner_score(
         f"setup={breakdown.setup_complexity_inv:.0f}"
     )
     return BeginnerScore(
-        score=score, grade=grade, breakdown=breakdown, explanation=explanation,
+        score=score,
+        grade=grade,
+        breakdown=breakdown,
+        explanation=explanation,
     )
 
 
