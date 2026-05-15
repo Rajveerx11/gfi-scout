@@ -44,3 +44,8 @@ Thumbs.db
 
 # Autoresearch runtime output
 eval/results.tsv
+
+# Local live-API smoke/workflow scripts (require GITHUB_TOKEN, not for CI)
+scripts/smoke_test.py
+scripts/workflow_demo.py
+scripts/workflow_multi.py
