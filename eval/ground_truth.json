@@ -1,0 +1,56 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-05-15",
+  "notes": "Seed data only. Replace this with real labeled issues after using GFI Scout for 2-3 weeks.",
+  "queries": [
+    {
+      "query_id": "python_general",
+      "language": "python",
+      "min_stars": 50,
+      "max_stars": 50000,
+      "description": "General Python good first issues",
+      "labeled_issues": [
+        {
+          "issue_url": "https://github.com/pallets/flask/issues/3787",
+          "repo": "pallets/flask",
+          "expected_verdict": "good",
+          "reason": "Small documentation fix in a mature Python repo; closed as completed within hours.",
+          "labeled_by": "seed",
+          "labeled_date": "2026-05-15"
+        },
+        {
+          "issue_url": "https://github.com/pytest-dev/pytest/issues/13476",
+          "repo": "pytest-dev/pytest",
+          "expected_verdict": "good",
+          "reason": "Typo-level documentation issue with clear scope; closed as completed the next day.",
+          "labeled_by": "seed",
+          "labeled_date": "2026-05-15"
+        },
+        {
+          "issue_url": "https://github.com/pallets/click/issues/3088",
+          "repo": "pallets/click",
+          "expected_verdict": "good",
+          "reason": "Focused docs link task in an active project; closed as completed with low discussion overhead.",
+          "labeled_by": "seed",
+          "labeled_date": "2026-05-15"
+        },
+        {
+          "issue_url": "https://github.com/pytest-dev/pytest/issues/13625",
+          "repo": "pytest-dev/pytest",
+          "expected_verdict": "bad",
+          "reason": "Broad docstring sweep across many public methods; larger and less beginner-sized than the label suggests.",
+          "labeled_by": "seed",
+          "labeled_date": "2026-05-15"
+        },
+        {
+          "issue_url": "https://github.com/tensorflow/tensorflow/issues/26276",
+          "repo": "tensorflow/tensorflow",
+          "expected_verdict": "bad",
+          "reason": "Meta discussion about labels rather than a concrete beginner contribution task.",
+          "labeled_by": "seed",
+          "labeled_date": "2026-05-15"
+        }
+      ]
+    }
+  ]
+}
