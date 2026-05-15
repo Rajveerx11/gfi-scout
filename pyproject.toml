@@ -1,0 +1,50 @@
+[project]
+name = "gfi-scout"
+version = "0.1.0"
+description = "MCP server that finds open source issues where beginners actually succeed"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [
+    { name = "Rajveer Vadnal", email = "rajveer11vadnal@gmail.com" },
+]
+dependencies = [
+    "mcp[cli]>=1.27.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.10.0",
+    "cachetools>=5.5.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+gfi-scout = "gfi_scout.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.25.0",
+    "ruff>=0.8.0",
+    "mypy>=1.14.0",
+    "respx>=0.22.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
