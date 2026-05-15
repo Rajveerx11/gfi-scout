@@ -36,7 +36,6 @@ gfi-scout/
 │       ├── services/             # Business logic & external API wrappers
 │       │   ├── __init__.py
 │       │   ├── github_api.py     # GitHub REST/GraphQL API client
-│       │   ├── gitlab_api.py     # GitLab API client (Phase 3)
 │       │   ├── repo_analyzer.py  # Repo health scoring engine
 │       │   ├── issue_scorer.py   # Issue quality & freshness scoring
 │       │   └── cache.py          # Caching layer (rate limit management)
@@ -367,7 +366,6 @@ beginner_score = weighted_sum(
 **Deliverables:**
 - [ ] `get_contribution_guide` tool — CONTRIBUTING.md parser + summarizer
 - [ ] Setup complexity estimation
-- [ ] GitLab API support (`src/gfi_scout/services/gitlab_api.py`)
 - [ ] Topic/domain filtering (web, CLI, data-science, DevOps, etc.)
 - [ ] `docs/TOOLS_REFERENCE.md` — full tool documentation
 - [ ] End-to-end tests across multiple MCP clients

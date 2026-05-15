@@ -173,7 +173,7 @@ src/gfi_scout/
 │   ├── check_repo_health.py
 │   ├── check_issue_status.py
 │   └── get_contribution_guide.py
-├── services/          # GitHub/GitLab clients, scoring, cache
+├── services/          # GitHub client, scoring, cache
 ├── models/            # Pydantic models
 └── utils/             # Pure helpers (validators, rate limiter, logger)
 

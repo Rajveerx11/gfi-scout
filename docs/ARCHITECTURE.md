@@ -22,7 +22,7 @@ FastMCP server  (src/gfi_scout/server.py)
         services (src/gfi_scout/services/)
         ┌───────────────┐  ┌──────────────────┐  ┌──────────────────┐
         │ github_api    │  │ repo_analyzer    │  │ issue_scorer     │
-        │ gitlab_api    │  │ scoring_config   │  │ cache            │
+        │               │  │ scoring_config   │  │ cache            │
         └───────────────┘  └──────────────────┘  └──────────────────┘
                 │
                 ▼

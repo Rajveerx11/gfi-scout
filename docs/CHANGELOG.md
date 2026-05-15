@@ -26,7 +26,6 @@ and this project adheres to [SemVer](https://semver.org/).
   - `get_contribution_guide` tool: pulls + summarises `CONTRIBUTING.md`
     (or README setup section), detects required toolchain, estimates
     `easy` / `moderate` / `complex` setup.
-  - `services/gitlab_api.py` — async GitLab client.
   - `utils/rate_limiter.py` — async token-bucket limiter.
   - `docs/TOOLS_REFERENCE.md`, `docs/ARCHITECTURE.md`, `docs/SETUP.md`.
 - **Phase 4** — Open Source Release plumbing

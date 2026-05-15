@@ -83,7 +83,7 @@ it before you write the code.
 We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat: add gitlab support to find_issues
+feat: add topic filter to find_issues
 fix(scorer): clamp clarity bonus at 100
 docs: clarify scoring weight sum invariant
 test: cover stale issue edge case
