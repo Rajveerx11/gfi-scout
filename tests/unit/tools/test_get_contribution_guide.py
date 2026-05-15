@@ -111,3 +111,51 @@ async def test_falls_back_to_readme(
     assert "uv" in guide.required_tools
     assert guide.setup_complexity == "easy"
     assert "README.md" in guide.source_files
+
+
+@pytest.mark.asyncio
+async def test_strips_code_fence_delimiters(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    """Fenced code blocks under a Setup heading should yield commands without
+    the ``` delimiters that previously leaked into setup_instructions."""
+    repo = "acme/fenced"
+    fenced = """\
+# Contributing
+
+## Setup
+
+```bash
+pip install -e .
+pytest
+```
+
+Then run the dev server.
+"""
+    respx_mock.get(f"/repos/{repo}/contents/CONTRIBUTING.md").mock(
+        return_value=httpx.Response(
+            200,
+            json={"encoding": "base64", "content": _b64(fenced)},
+        )
+    )
+    for p in (
+        "docs/CONTRIBUTING.md",
+        ".github/CONTRIBUTING.md",
+        "CONTRIBUTING.rst",
+        "README.md",
+        "readme.md",
+        "Readme.md",
+        "README.rst",
+    ):
+        respx_mock.get(f"/repos/{repo}/contents/{p}").mock(return_value=httpx.Response(404))
+
+    guide = await get_contribution_guide(github_client, repo)
+
+    # Commands inside the fence are captured...
+    assert any("pip install -e ." in step for step in guide.setup_instructions)
+    assert any("pytest" in step for step in guide.setup_instructions)
+    # ...but the ``` delimiters themselves never appear.
+    for step in guide.setup_instructions:
+        assert not step.startswith("```"), f"fence leaked into step: {step!r}"
+        assert step.strip() != "```"

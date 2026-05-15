@@ -166,9 +166,7 @@ async def test_network_error_returns_connection_message(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,
 ) -> None:
-    respx_mock.get("/search/issues").mock(
-        side_effect=httpx.ConnectError("dns failure")
-    )
+    respx_mock.get("/search/issues").mock(side_effect=httpx.ConnectError("dns failure"))
 
     with pytest.raises(GitHubAPIError) as exc_info:
         await github_client.search_issues("q")

@@ -72,25 +72,40 @@ COMPLEXITY_HINTS_MODERATE = (
     "build step",
 )
 BULLET_RE = re.compile(r"^[\s>]*[-*+\d.]+\s+(.+)$")
+FENCE_RE = re.compile(r"^\s*```")
 
 
 def _extract_section(text: str, heading_re: re.Pattern[str]) -> list[str]:
-    """Extract bullet/numbered lines from sections whose heading matches."""
+    """Extract bullet/numbered lines or fenced code from sections whose heading matches.
+
+    Tracks fenced code blocks so the ``` delimiters themselves are never
+    captured. Lines inside a fence are kept verbatim (useful for setup
+    commands like `pip install foo`); lines outside fences keep the
+    pre-existing bullet/numbered behaviour.
+    """
     if not text:
         return []
     lines = text.splitlines()
     capture = False
+    in_fence = False
     captured: list[str] = []
     for line in lines:
         stripped = line.rstrip()
-        if re.match(r"^#+\s", stripped):
+        if FENCE_RE.match(stripped):
+            in_fence = not in_fence
+            continue
+        if not in_fence and re.match(r"^#+\s", stripped):
             capture = bool(heading_re.match(stripped))
             continue
-        if capture and stripped.strip():
+        if not capture or not stripped.strip():
+            continue
+        if in_fence:
+            content = stripped.strip()
+        else:
             bullet = BULLET_RE.match(stripped)
             content = bullet.group(1) if bullet else stripped.strip()
-            if content:
-                captured.append(content)
+        if content:
+            captured.append(content)
     # de-dupe while preserving order, cap to keep payload small
     seen: set[str] = set()
     out: list[str] = []
