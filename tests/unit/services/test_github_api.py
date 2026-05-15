@@ -91,3 +91,114 @@ def test_constructor_requires_token() -> None:
 
 def test_base_url_default() -> None:
     assert GITHUB_API_BASE == "https://api.github.com"
+
+
+@pytest.mark.asyncio
+async def test_401_returns_helpful_token_message(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(401, json={"message": "Bad credentials"})
+    )
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert exc_info.value.status_code == 401
+    assert "GITHUB_TOKEN" in str(exc_info.value)
+    assert "invalid or expired" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_403_returns_rate_limit_message_with_reset(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(
+            403,
+            headers={"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "1700000000"},
+            json={"message": "API rate limit exceeded"},
+        )
+    )
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert exc_info.value.status_code == 403
+    msg = str(exc_info.value)
+    assert "rate limit exceeded" in msg
+    assert "2023-11-14" in msg  # 1700000000 → 2023-11-14T22:13:20+00:00
+
+
+@pytest.mark.asyncio
+async def test_403_without_reset_header_renders_unknown_time(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(403, json={"message": "Forbidden"})
+    )
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert "unknown time" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_404_returns_not_found_message(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    respx_mock.get("/repos/owner/missing").mock(return_value=httpx.Response(404))
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.get_repo("owner/missing")
+
+    assert exc_info.value.status_code == 404
+    assert "not found" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_network_error_returns_connection_message(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    respx_mock.get("/search/issues").mock(
+        side_effect=httpx.ConnectError("dns failure")
+    )
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert exc_info.value.status_code == 0
+    assert "Could not connect" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_logs_rate_limit_headers(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(
+            200,
+            headers={"X-RateLimit-Remaining": "4999", "X-RateLimit-Reset": "1700000000"},
+            json=sample_issues,
+        )
+    )
+
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="gfi_scout.services.github_api"):
+        await github_client.search_issues("q")
+
+    record = next(r for r in caplog.records if "github_api method=GET" in r.getMessage())
+    msg = record.getMessage()
+    assert "rate_remaining=4999" in msg
+    assert "rate_reset=1700000000" in msg
+    assert "duration_ms=" in msg

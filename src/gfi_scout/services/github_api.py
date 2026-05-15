@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import time
+from datetime import UTC, datetime
 from types import TracebackType
 from typing import Any, Self
 
@@ -35,6 +36,17 @@ NS_ISSUE_TIMELINE = "issue_timeline"
 NS_CONTENT = "repo_content"
 
 log = get_logger(__name__)
+
+
+def _format_reset_time(reset_header: str | None) -> str:
+    """Format an X-RateLimit-Reset epoch header as ISO 8601 UTC."""
+    if not reset_header:
+        return "unknown time"
+    try:
+        epoch = int(reset_header)
+    except (TypeError, ValueError):
+        return "unknown time"
+    return datetime.fromtimestamp(epoch, tz=UTC).isoformat()
 
 
 class GitHubAPIError(RuntimeError):
@@ -111,32 +123,58 @@ class GitHubClient:
         start = time.perf_counter()
         try:
             response = await self._client.get(url, params=params)
-        except httpx.HTTPError as exc:
-            log.exception("GitHub request failed: %s", exc)
-            raise GitHubAPIError(0, str(exc), url=url) from exc
+        except httpx.RequestError as exc:
+            duration_ms = (time.perf_counter() - start) * 1000
+            log.error(
+                "github_api method=GET url=%s status=- duration_ms=%.1f error=%s",
+                url,
+                duration_ms,
+                exc,
+            )
+            raise GitHubAPIError(
+                0,
+                "Could not connect to GitHub API. Check your internet connection.",
+                url=url,
+            ) from exc
 
         duration_ms = (time.perf_counter() - start) * 1000
+        rate_remaining = response.headers.get("X-RateLimit-Remaining")
+        rate_reset = response.headers.get("X-RateLimit-Reset")
         log.info(
-            "github_api request=%s status=%s duration_ms=%.1f params=%s",
+            "github_api method=GET url=%s status=%s duration_ms=%.1f "
+            "rate_remaining=%s rate_reset=%s params=%s",
             url,
             response.status_code,
             duration_ms,
+            rate_remaining,
+            rate_reset,
             params,
         )
 
-        if response.status_code == 404 and allow_404:
+        status = response.status_code
+        if 200 <= status < 300:
+            if not response.content:
+                return None
+            return response.json()
+
+        if status == 404 and allow_404:
             return None
-        if response.status_code == 404:
-            raise GitHubNotFoundError(404, response.text[:300], url=url)
-        if response.status_code >= 400:
-            raise GitHubAPIError(
-                response.status_code,
-                response.text[:500],
+
+        if status == 401:
+            message = "GitHub token is invalid or expired. Check your GITHUB_TOKEN in .env"
+        elif status == 403:
+            reset_time = _format_reset_time(rate_reset)
+            message = f"GitHub API rate limit exceeded. Resets at {reset_time}. Try again later."
+        elif status == 404:
+            raise GitHubNotFoundError(
+                404,
+                f"Repository or resource not found: {url}",
                 url=url,
             )
-        if not response.content:
-            return None
-        return response.json()
+        else:
+            message = response.text[:500] or f"HTTP {status}"
+
+        raise GitHubAPIError(status, message, url=url)
 
     # ---- search ----------------------------------------------------------
 
