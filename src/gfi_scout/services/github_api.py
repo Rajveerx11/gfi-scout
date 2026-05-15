@@ -342,7 +342,6 @@ class GitHubClient:
             allow_404=True,
         )
         if data is None:
-            self._cache_set(NS_CONTENT, *cache_key, value=None)
             return None
         if isinstance(data, list):
             return None
