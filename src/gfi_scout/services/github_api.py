@@ -96,24 +96,10 @@ class GitHubClient:
     # ---- internals --------------------------------------------------------
 
     def _cache_get(self, namespace: str, *parts: object) -> object | None:
-        # NullCache: get returns None.
-        # TTLNamespaceCache: positional namespace + parts.
-        getter = getattr(self._cache, "get", None)
-        if getter is None:
-            return None
-        try:
-            return getter(namespace, *parts)  # type: ignore[call-arg]
-        except TypeError:
-            return getter("|".join([namespace, *map(str, parts)]))
+        return self._cache.get(namespace, *parts)
 
     def _cache_set(self, namespace: str, *parts: object, value: object) -> None:
-        setter = getattr(self._cache, "set", None)
-        if setter is None:
-            return
-        try:
-            setter(namespace, *parts, value=value)  # type: ignore[call-arg]
-        except TypeError:
-            setter("|".join([namespace, *map(str, parts)]), value)
+        self._cache.set(namespace, *parts, value=value)
 
     async def _get_json(
         self,
@@ -217,8 +203,13 @@ class GitHubClient:
             return cached
         data = await self._get_json(
             f"/repos/{repo_full_name}/pulls",
-            params={"state": state, "per_page": per_page, "page": page,
-                    "sort": "updated", "direction": "desc"},
+            params={
+                "state": state,
+                "per_page": per_page,
+                "page": page,
+                "sort": "updated",
+                "direction": "desc",
+            },
         )
         result = list(data) if isinstance(data, list) else []
         self._cache_set(NS_PRS, *cache_key, value=result)
@@ -258,22 +249,24 @@ class GitHubClient:
         if since_iso:
             params["since"] = since_iso
         data = await self._get_json(
-            f"/repos/{repo_full_name}/commits", params=params, allow_404=True,
+            f"/repos/{repo_full_name}/commits",
+            params=params,
+            allow_404=True,
         )
         return list(data) if isinstance(data, list) else []
 
     # ---- issue detail -----------------------------------------------------
 
     async def get_issue(
-        self, repo_full_name: str, number: int,
+        self,
+        repo_full_name: str,
+        number: int,
     ) -> GitHubIssueRaw:
         cache_key = (repo_full_name, number)
         cached = self._cache_get(NS_ISSUE, *cache_key)
         if isinstance(cached, GitHubIssueRaw):
             return cached
-        data = await self._get_json(
-            f"/repos/{repo_full_name}/issues/{number}"
-        )
+        data = await self._get_json(f"/repos/{repo_full_name}/issues/{number}")
         assert isinstance(data, dict)
         # Issues endpoint returns repository_url derived from the issue URL.
         if "repository_url" not in data:
@@ -283,7 +276,11 @@ class GitHubClient:
         return parsed
 
     async def list_issue_comments(
-        self, repo_full_name: str, number: int, *, per_page: int = 30,
+        self,
+        repo_full_name: str,
+        number: int,
+        *,
+        per_page: int = 30,
     ) -> list[dict[str, Any]]:
         if per_page > MAX_PER_PAGE:
             per_page = MAX_PER_PAGE
@@ -301,7 +298,11 @@ class GitHubClient:
         return result
 
     async def list_issue_timeline(
-        self, repo_full_name: str, number: int, *, per_page: int = 30,
+        self,
+        repo_full_name: str,
+        number: int,
+        *,
+        per_page: int = 30,
     ) -> list[dict[str, Any]]:
         if per_page > MAX_PER_PAGE:
             per_page = MAX_PER_PAGE
@@ -330,9 +331,8 @@ class GitHubClient:
         """Fetch a file's text via the Contents API. None on 404."""
         cache_key = (repo_full_name, path, ref or "")
         cached = self._cache_get(NS_CONTENT, *cache_key)
-        if isinstance(cached, (str, type(None))):
-            if cached is not None:
-                return cached
+        if isinstance(cached, str):
+            return cached
         params: dict[str, Any] = {}
         if ref:
             params["ref"] = ref
@@ -357,7 +357,9 @@ class GitHubClient:
         return text
 
     async def path_exists(
-        self, repo_full_name: str, path: str,
+        self,
+        repo_full_name: str,
+        path: str,
     ) -> bool:
         """True if `path` exists at repo root (or as a directory)."""
         data = await self._get_json(

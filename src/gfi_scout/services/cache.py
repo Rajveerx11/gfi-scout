@@ -20,19 +20,19 @@ log = get_logger(__name__)
 
 
 class Cache(Protocol):
-    """Minimal cache surface — get / set with string keys."""
+    """Minimal cache surface — namespace + variadic key parts."""
 
-    def get(self, key: str) -> object | None: ...
-    def set(self, key: str, value: object) -> None: ...
+    def get(self, namespace: str, *key_parts: object) -> object | None: ...
+    def set(self, namespace: str, *key_parts: object, value: object) -> None: ...
 
 
 class NullCache:
     """No-op cache. Every `get` is a miss; `set` is a no-op."""
 
-    def get(self, key: str) -> object | None:  # noqa: ARG002
+    def get(self, namespace: str, *key_parts: object) -> object | None:  # noqa: ARG002
         return None
 
-    def set(self, key: str, value: object) -> None:  # noqa: ARG002
+    def set(self, namespace: str, *key_parts: object, value: object) -> None:  # noqa: ARG002
         return None
 
 

@@ -55,7 +55,9 @@ class GitLabClient:
             headers["PRIVATE-TOKEN"] = token
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(
-            base_url=base_url, headers=headers, timeout=timeout,
+            base_url=base_url,
+            headers=headers,
+            timeout=timeout,
         )
 
     async def __aenter__(self) -> Self:
@@ -74,7 +76,9 @@ class GitLabClient:
             await self._client.aclose()
 
     async def _get(
-        self, url: str, params: dict[str, Any] | None = None,
+        self,
+        url: str,
+        params: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]] | dict[str, Any]:
         start = time.perf_counter()
         try:
@@ -85,13 +89,18 @@ class GitLabClient:
         duration_ms = (time.perf_counter() - start) * 1000
         log.info(
             "gitlab_api request=%s status=%s duration_ms=%.1f params=%s",
-            url, response.status_code, duration_ms, params,
+            url,
+            response.status_code,
+            duration_ms,
+            params,
         )
         if response.status_code >= 400:
             raise GitLabAPIError(
-                response.status_code, response.text[:500], url=url,
+                response.status_code,
+                response.text[:500],
+                url=url,
             )
-        data = response.json()
+        data: list[dict[str, Any]] | dict[str, Any] = response.json()
         return data
 
     async def search_issues(
@@ -129,6 +138,8 @@ class GitLabClient:
         data = await self._get(f"/projects/{encoded}")
         if not isinstance(data, dict):
             raise GitLabAPIError(
-                500, "unexpected response shape", url=f"/projects/{encoded}",
+                500,
+                "unexpected response shape",
+                url=f"/projects/{encoded}",
             )
         return data
