@@ -58,11 +58,14 @@ async def test_find_issues_maps_response_to_issue_results(
     sample_issues: dict[str, Any],
     github_client: GitHubClient,
 ) -> None:
-    respx_mock.get("/search/issues").mock(
-        return_value=httpx.Response(200, json=sample_issues)
-    )
+    respx_mock.get("/search/issues").mock(return_value=httpx.Response(200, json=sample_issues))
 
-    results = await find_issues(github_client, language="python", max_results=10)
+    results = await find_issues(
+        github_client,
+        language="python",
+        max_results=10,
+        enable_scoring=False,
+    )
 
     assert len(results) == 2
     first = results[0]
@@ -86,7 +89,12 @@ async def test_find_issues_clamps_max_results(
         return_value=httpx.Response(200, json=sample_issues)
     )
 
-    await find_issues(github_client, language="python", max_results=999)
+    await find_issues(
+        github_client,
+        language="python",
+        max_results=999,
+        enable_scoring=False,
+    )
 
     request = route.calls.last.request
     assert request.url.params.get("per_page") == "25"
@@ -102,7 +110,11 @@ async def test_find_issues_normalises_language(
         return_value=httpx.Response(200, json=sample_issues)
     )
 
-    await find_issues(github_client, language="  Python  ")
+    await find_issues(
+        github_client,
+        language="  Python  ",
+        enable_scoring=False,
+    )
 
     request = route.calls.last.request
     q = request.url.params.get("q") or ""
@@ -132,11 +144,13 @@ async def test_find_issues_truncates_body_preview(
             }
         ],
     }
-    respx_mock.get("/search/issues").mock(
-        return_value=httpx.Response(200, json=payload)
-    )
+    respx_mock.get("/search/issues").mock(return_value=httpx.Response(200, json=payload))
 
-    results = await find_issues(github_client, language="python")
+    results = await find_issues(
+        github_client,
+        language="python",
+        enable_scoring=False,
+    )
 
     assert results[0].body_preview.endswith("…")
     assert len(results[0].body_preview) <= BODY_PREVIEW_CHARS + 1

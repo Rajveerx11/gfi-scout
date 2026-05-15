@@ -77,9 +77,7 @@ def _block_real_http(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> httpx.Response:
         host = request.url.host or ""
         if host.endswith("api.github.com") and not _respx_active:
-            raise RuntimeError(
-                f"real HTTP call escaped test mock: {request.method} {request.url}"
-            )
+            raise RuntimeError(f"real HTTP call escaped test mock: {request.method} {request.url}")
         return await original_send(self, request, **kwargs)
 
     monkeypatch.setattr(httpx.AsyncClient, "send", guarded_send)

@@ -42,9 +42,7 @@ async def test_search_issues_returns_typed_response(
     sample_issues: dict[str, Any],
     github_client: GitHubClient,
 ) -> None:
-    respx_mock.get("/search/issues").mock(
-        return_value=httpx.Response(200, json=sample_issues)
-    )
+    respx_mock.get("/search/issues").mock(return_value=httpx.Response(200, json=sample_issues))
 
     result = await github_client.search_issues("language:python")
 
