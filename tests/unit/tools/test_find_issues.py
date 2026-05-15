@@ -51,6 +51,28 @@ class TestBuildSearchQuery:
         assert 'label:"good first issue"' in query
         assert 'label:"help wanted"' in query
 
+    def test_unassigned_only_false_drops_no_assignee(self) -> None:
+        query = build_search_query(
+            language="python",
+            labels=["good first issue"],
+            min_stars=50,
+            max_stars=50000,
+            topic=None,
+            unassigned_only=False,
+        )
+        assert "no:assignee" not in query
+
+    def test_clamps_negative_and_inverted_star_bounds(self) -> None:
+        query = build_search_query(
+            language="python",
+            labels=["good first issue"],
+            min_stars=-100,
+            max_stars=-5,
+            topic=None,
+        )
+        # Negative bounds coerced to 0..0; never produces a malformed range.
+        assert "stars:0..0" in query
+
 
 @pytest.mark.asyncio
 async def test_find_issues_maps_response_to_issue_results(
@@ -119,6 +141,57 @@ async def test_find_issues_normalises_language(
     request = route.calls.last.request
     q = request.url.params.get("q") or ""
     assert "language:python" in q
+
+
+@pytest.mark.asyncio
+async def test_find_issues_unassigned_only_false_passed_to_query(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(200, json=sample_issues)
+    )
+
+    await find_issues(
+        github_client,
+        language="python",
+        enable_scoring=False,
+        unassigned_only=False,
+    )
+
+    q = route.calls.last.request.url.params.get("q") or ""
+    assert "no:assignee" not in q
+
+
+@pytest.mark.asyncio
+async def test_find_issues_rejects_injection_in_label(
+    github_client: GitHubClient,
+) -> None:
+    from gfi_scout.utils.validators import ValidationError
+
+    with pytest.raises(ValidationError):
+        await find_issues(
+            github_client,
+            language="python",
+            labels=['good first issue" stars:0..0 "'],
+            enable_scoring=False,
+        )
+
+
+@pytest.mark.asyncio
+async def test_find_issues_rejects_injection_in_topic(
+    github_client: GitHubClient,
+) -> None:
+    from gfi_scout.utils.validators import ValidationError
+
+    with pytest.raises(ValidationError):
+        await find_issues(
+            github_client,
+            language="python",
+            topic="web stars:0..0",
+            enable_scoring=False,
+        )
 
 
 @pytest.mark.asyncio

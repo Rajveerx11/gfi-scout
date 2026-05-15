@@ -7,10 +7,13 @@ from urllib.parse import urlparse
 
 MAX_RESULTS_HARD_CAP = 25
 LANGUAGE_MAX_LENGTH = 64
+LABEL_MAX_LENGTH = 64
+TOPIC_MAX_LENGTH = 50
 REPO_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 ISSUE_URL_RE = re.compile(
     r"^https?://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/issues/(\d+)(?:[/?#].*)?$"
 )
+TOPIC_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,49}$")
 
 
 class ValidationError(ValueError):
@@ -61,6 +64,42 @@ def validate_repo_full_name(repo: str) -> str:
     if not REPO_NAME_RE.match(raw):
         raise ValidationError(f"repo must be 'owner/name' with safe characters, got {repo!r}")
     return raw
+
+
+def validate_label(label: str) -> str:
+    """Validate a GitHub issue label for safe inclusion in a search query.
+
+    Labels are interpolated into `label:"..."` qualifiers, so they must not
+    contain characters that could break out of the quoted value (`"`, newlines,
+    control chars) or introduce new search qualifiers.
+    """
+    if not isinstance(label, str):
+        raise ValidationError("label must be a string")
+    cleaned = label.strip()
+    if not cleaned:
+        raise ValidationError("label must not be empty")
+    if len(cleaned) > LABEL_MAX_LENGTH:
+        raise ValidationError(f"label too long (>{LABEL_MAX_LENGTH} chars)")
+    for ch in cleaned:
+        if ch == '"' or ch == "\\" or ord(ch) < 0x20:
+            raise ValidationError("label contains disallowed character")
+    return cleaned
+
+
+def validate_topic(topic: str) -> str:
+    """Validate a GitHub topic slug (lowercase alphanumerics + hyphens)."""
+    if not isinstance(topic, str):
+        raise ValidationError("topic must be a string")
+    cleaned = topic.strip().lower()
+    if not cleaned:
+        raise ValidationError("topic must not be empty")
+    if len(cleaned) > TOPIC_MAX_LENGTH:
+        raise ValidationError(f"topic too long (>{TOPIC_MAX_LENGTH} chars)")
+    if not TOPIC_RE.match(cleaned):
+        raise ValidationError(
+            "topic must be lowercase alphanumerics or hyphens, start with alphanumeric"
+        )
+    return cleaned
 
 
 def parse_issue_url(url: str) -> tuple[str, int]:

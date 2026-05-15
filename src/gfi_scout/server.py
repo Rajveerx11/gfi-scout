@@ -57,6 +57,7 @@ async def find_issues(
     max_results: int = 10,
     sort_by: str = "beginner_score",
     topic: str | None = None,
+    unassigned_only: bool = True,
 ) -> list[IssueResult]:
     """Find beginner-friendly open source issues ranked by likelihood of success.
 
@@ -72,6 +73,9 @@ async def find_issues(
         max_results: How many results (1-25).
         sort_by: "beginner_score" | "freshness" | "repo_health".
         topic: Optional GitHub topic filter ("web", "cli", "data-science", ...).
+        unassigned_only: When True (default), excludes issues that already
+            have an assignee. Set False to widen the search when narrow
+            language/label/stars combos return zero hits.
     """
     cfg = get_scoring_config()
     async with _make_client() as client:
@@ -85,6 +89,7 @@ async def find_issues(
             max_results=max_results,
             sort_by=sort_by,
             topic=topic,
+            unassigned_only=unassigned_only,
         )
 
 

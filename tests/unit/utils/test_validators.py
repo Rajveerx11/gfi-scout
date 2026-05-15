@@ -7,8 +7,10 @@ from gfi_scout.utils.validators import (
     ValidationError,
     clamp_max_results,
     parse_issue_url,
+    validate_label,
     validate_language,
     validate_repo_full_name,
+    validate_topic,
 )
 
 
@@ -88,3 +90,65 @@ class TestParseIssueUrl:
     def test_rejects_pr_url(self) -> None:
         with pytest.raises(ValidationError):
             parse_issue_url("https://github.com/a/b/pull/7")
+
+
+class TestValidateLabel:
+    def test_accepts_normal_label(self) -> None:
+        assert validate_label("good first issue") == "good first issue"
+
+    def test_strips_whitespace(self) -> None:
+        assert validate_label("  help wanted  ") == "help wanted"
+
+    def test_rejects_empty(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_label("")
+        with pytest.raises(ValidationError):
+            validate_label("   ")
+
+    def test_rejects_double_quote_injection(self) -> None:
+        # Would break out of label:"..." and inject new qualifiers.
+        with pytest.raises(ValidationError):
+            validate_label('foo" stars:0..0 "bar')
+
+    def test_rejects_backslash(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_label("foo\\bar")
+
+    def test_rejects_newline(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_label("foo\nbar")
+
+    def test_rejects_control_chars(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_label("foo\x00bar")
+
+    def test_rejects_too_long(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_label("a" * 200)
+
+
+class TestValidateTopic:
+    def test_accepts_simple(self) -> None:
+        assert validate_topic("web") == "web"
+        assert validate_topic("data-science") == "data-science"
+
+    def test_lowercases(self) -> None:
+        assert validate_topic("Web") == "web"
+
+    def test_rejects_spaces(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_topic("data science")
+
+    def test_rejects_special_chars(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_topic("web;rm")
+        with pytest.raises(ValidationError):
+            validate_topic('foo"bar')
+
+    def test_rejects_leading_hyphen(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_topic("-web")
+
+    def test_rejects_empty(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_topic("")

@@ -15,7 +15,12 @@ from gfi_scout.services.issue_scorer import (
 from gfi_scout.services.repo_analyzer import analyse_repo
 from gfi_scout.services.scoring_config import ScoringConfig
 from gfi_scout.utils.logger import get_logger
-from gfi_scout.utils.validators import clamp_max_results, validate_language
+from gfi_scout.utils.validators import (
+    clamp_max_results,
+    validate_label,
+    validate_language,
+    validate_topic,
+)
 
 DEFAULT_LABELS = ("good first issue",)
 BODY_PREVIEW_CHARS = 280
@@ -32,16 +37,25 @@ def build_search_query(
     min_stars: int,
     max_stars: int,
     topic: str | None,
+    unassigned_only: bool = True,
 ) -> str:
-    """Compose a GitHub Search API qualifier string."""
+    """Compose a GitHub Search API qualifier string.
+
+    Inputs are assumed to be pre-validated by the caller (see `validate_label`,
+    `validate_language`, `validate_topic`). Star bounds are coerced to a sane
+    non-negative range before interpolation.
+    """
     parts: list[str] = []
     for label in labels:
         parts.append(f'label:"{label}"')
     parts.append(f"language:{language}")
-    parts.append(f"stars:{min_stars}..{max_stars}")
+    lo = max(0, int(min_stars))
+    hi = max(lo, int(max_stars))
+    parts.append(f"stars:{lo}..{hi}")
     parts.append("state:open")
     parts.append("is:issue")
-    parts.append("no:assignee")
+    if unassigned_only:
+        parts.append("no:assignee")
     if topic:
         parts.append(f"topic:{topic}")
     return " ".join(parts)
@@ -147,6 +161,7 @@ async def find_issues(
     max_results: int = 10,
     sort_by: str = "beginner_score",
     topic: str | None = None,
+    unassigned_only: bool = True,
     enable_scoring: bool = True,
     health_concurrency: int = DEFAULT_HEALTH_CONCURRENCY,
 ) -> list[IssueResult]:
@@ -155,10 +170,16 @@ async def find_issues(
     Phase 2: pulls repo-health metrics in parallel for every returned issue's
     repo and computes a `beginner_score` per issue. Sort by `beginner_score`
     (default), `freshness`, or `repo_health`.
+
+    When `unassigned_only=True` (default), the search adds `no:assignee` to
+    filter out tickets someone is already working. Set to False to widen the
+    search — useful when narrow language/label/stars combos return zero hits.
     """
     cleaned_language = validate_language(language)
     capped = clamp_max_results(max_results)
-    label_list = list(labels) if labels else list(DEFAULT_LABELS)
+    raw_labels = list(labels) if labels else list(DEFAULT_LABELS)
+    label_list = [validate_label(label) for label in raw_labels]
+    cleaned_topic = validate_topic(topic) if topic else None
     if sort_by not in ALLOWED_SORTS:
         sort_by = "beginner_score"
 
@@ -167,7 +188,8 @@ async def find_issues(
         labels=label_list,
         min_stars=min_stars,
         max_stars=max_stars,
-        topic=topic,
+        topic=cleaned_topic,
+        unassigned_only=unassigned_only,
     )
     log.info("find_issues query=%r max_results=%d sort_by=%s", query, capped, sort_by)
 
