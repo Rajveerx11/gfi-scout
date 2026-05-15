@@ -1,0 +1,25 @@
+{
+  "weights": {
+    "repo_health": 0.30,
+    "issue_freshness": 0.20,
+    "issue_clarity": 0.15,
+    "merge_friendliness": 0.25,
+    "setup_complexity_inv": 0.10
+  },
+  "thresholds": {
+    "stale_issue_days": 60,
+    "fresh_issue_days": 14,
+    "clarity_min_body_chars": 80,
+    "clarity_great_body_chars": 400,
+    "active_repo_commit_days": 7,
+    "stale_repo_commit_days": 90,
+    "high_merge_rate": 0.7,
+    "low_merge_rate": 0.2
+  },
+  "grade_cutoffs": {
+    "A": 85,
+    "B": 70,
+    "C": 55,
+    "D": 40
+  }
+}

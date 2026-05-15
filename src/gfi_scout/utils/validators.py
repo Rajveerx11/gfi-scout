@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import re
+from urllib.parse import urlparse
+
 MAX_RESULTS_HARD_CAP = 25
 LANGUAGE_MAX_LENGTH = 64
+REPO_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+ISSUE_URL_RE = re.compile(
+    r"^https?://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/issues/(\d+)(?:[/?#].*)?$"
+)
 
 
 class ValidationError(ValueError):
@@ -35,3 +42,38 @@ def clamp_max_results(value: int, hard_cap: int = MAX_RESULTS_HARD_CAP) -> int:
     if value > hard_cap:
         return hard_cap
     return value
+
+
+def validate_repo_full_name(repo: str) -> str:
+    """Validate an `owner/repo` string. Accepts a full GitHub URL too."""
+    if not isinstance(repo, str):
+        raise ValidationError("repo must be a string")
+    raw = repo.strip()
+    if not raw:
+        raise ValidationError("repo must not be empty")
+    if raw.startswith("http://") or raw.startswith("https://"):
+        parsed = urlparse(raw)
+        if parsed.netloc.lower() not in {"github.com", "www.github.com"}:
+            raise ValidationError("only github.com URLs are supported")
+        path = parsed.path.strip("/")
+        parts = path.split("/")
+        if len(parts) < 2:
+            raise ValidationError("URL must include owner/repo")
+        raw = f"{parts[0]}/{parts[1]}"
+    if not REPO_NAME_RE.match(raw):
+        raise ValidationError(
+            f"repo must be 'owner/name' with safe characters, got {repo!r}"
+        )
+    return raw
+
+
+def parse_issue_url(url: str) -> tuple[str, int]:
+    """Parse a GitHub issue URL into (`owner/repo`, issue_number)."""
+    if not isinstance(url, str):
+        raise ValidationError("issue_url must be a string")
+    match = ISSUE_URL_RE.match(url.strip())
+    if not match:
+        raise ValidationError(
+            "issue_url must look like https://github.com/owner/repo/issues/N"
+        )
+    return match.group(1), int(match.group(2))

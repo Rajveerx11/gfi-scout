@@ -1,4 +1,4 @@
-"""Pydantic models for GitHub issues and the user-facing tool response."""
+"""Pydantic models for GitHub issues and the user-facing tool responses."""
 
 from __future__ import annotations
 
@@ -31,6 +31,8 @@ class GitHubIssueRaw(BaseModel):
     assignees: list[GitHubUser] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+    comments: int | None = None
+    pull_request: dict[str, object] | None = None
 
 
 class SearchIssuesResponse(BaseModel):
@@ -58,3 +60,37 @@ class IssueResult(BaseModel):
     is_assigned: bool
     created_at: datetime
     updated_at: datetime
+    beginner_score: int | None = None
+    freshness: str | None = None
+    repo_health_grade: str | None = None
+
+
+class IssueStatus(BaseModel):
+    """Result payload for the `check_issue_status` MCP tool."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    issue_url: HttpUrl
+    is_assigned: bool
+    has_linked_pr: bool
+    last_activity: datetime | None
+    is_stale: bool
+    competitor_prs: int
+    maintainer_confirmed: bool
+    availability_verdict: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class ContributionGuide(BaseModel):
+    """Result payload for the `get_contribution_guide` MCP tool."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    repo_full_name: str
+    contributing_summary: str
+    setup_instructions: list[str]
+    testing_requirements: list[str]
+    pr_conventions: list[str]
+    required_tools: list[str]
+    setup_complexity: str
+    source_files: list[str]

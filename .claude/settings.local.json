@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv sync *)",
+      "Bash(uv run *)",
+      "Bash(git -C c:/gfi-scout status --short)",
+      "Bash(git -C c:/gfi-scout branch --show-current)",
+      "Bash(git -C c:/gfi-scout branch -m master main)",
+      "Bash(git -C c:/gfi-scout add .)",
+      "Bash(git -C c:/gfi-scout commit -m ' *)",
+      "Bash(gh repo *)",
+      "Bash(git -C c:/gfi-scout status)",
+      "Bash(git -C c:/gfi-scout log --oneline -5)",
+      "Bash(git -C c:/gfi-scout rev-list --left-right --count origin/main...main)",
+      "Bash(git -C c:/gfi-scout fetch origin)",
+      "Bash(git -C c:/gfi-scout pull --ff-only origin main)",
+      "Bash(git -C c:/gfi-scout log --oneline -3)"
+    ]
+  }
+}
