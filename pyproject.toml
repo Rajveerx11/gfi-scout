@@ -49,3 +49,4 @@ warn_unused_configs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = "--cov=src/gfi_scout --cov-fail-under=70 --cov-report=term-missing"
