@@ -23,6 +23,9 @@ The last line of stdout is the only optimization target.
 - `eval/evaluate.py`: locked evaluation script.
 - `eval/ground_truth.json`: locked human-labeled answer key.
 - `src/gfi_scout/services/github_api.py`: stable API client.
+- `src/gfi_scout/tools/find_issues.py`: owns sort/filter logic the evaluator
+  relies on (`sort_by`, `unassigned_only`, label/topic validation). Editing it
+  would change ranking outside the scoring formula and game the evaluator.
 - `tests/`: do not modify existing tests.
 
 If you modify the locked files, the run is invalid. The evaluation must stay
