@@ -9,6 +9,10 @@ and this project adheres to [SemVer](https://semver.org/).
 
 ### Added
 
+- Standalone `gfi-scout-cli` command suite for issue search, repo health,
+  issue status, and contribution-guide inspection.
+- Interactive `gfi-scout-tui` terminal menu backed by the same tool handlers.
+- Shared runtime wiring for MCP and CLI entry points.
 - **Phase 2** — Intelligence Layer
   - `check_repo_health` tool: merge rate, last commit, contributor count,
     CONTRIBUTING / CoC / CI probes → `A`-`F` grade.

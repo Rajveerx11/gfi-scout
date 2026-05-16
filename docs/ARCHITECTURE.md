@@ -29,6 +29,10 @@ FastMCP server  (src/gfi_scout/server.py)
         GitHub REST API (search / repos / pulls / issues / contents)
 ```
 
+The standalone CLI/TUI entry point (`src/gfi_scout/cli.py`) calls the same
+tool handlers directly. Shared runtime wiring for cache and GitHub client
+construction lives in `src/gfi_scout/runtime.py`.
+
 ## Layering rules (non-negotiable)
 
 | Layer | Allowed | Forbidden |

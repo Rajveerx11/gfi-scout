@@ -2,7 +2,7 @@
 
 # GFI Scout
 
-**An MCP server that finds open source issues where beginners actually succeed — not just any issue tagged `good first issue`.**
+**An MCP server and standalone CLI that finds open source issues where beginners actually succeed — not just any issue tagged `good first issue`.**
 
 [![CI](https://github.com/Rajveerx11/gfi-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajveerx11/gfi-scout/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
@@ -21,7 +21,7 @@ Most "good first issue" finders are glorified GitHub search wrappers. They happi
 
 **GFI Scout ranks results by *likelihood of success*** — repo health, merge rate, maintainer responsiveness, issue freshness, and setup complexity all feed a composite `beginner_score` (0-100). The dead repos sink to the bottom.
 
-It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server, so it plugs into Claude Desktop, Cursor, VS Code Copilot, Windsurf, or any custom agent.
+It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server, plus a standalone CLI/TUI for terminal-first workflows.
 
 ---
 
@@ -31,9 +31,10 @@ It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server,
 - 🩺 **`check_repo_health`** — merge rate, last commit, CONTRIBUTING/CoC/CI probes → A-F grade
 - ⏱️ **`check_issue_status`** — assignment, linked PRs, staleness, maintainer confirmation → `AVAILABLE` / `LIKELY_TAKEN` / `STALE` verdict
 - 📘 **`get_contribution_guide`** — pulls and summarises `CONTRIBUTING.md`, detects toolchain, estimates setup complexity
+- Terminal commands via **`gfi-scout-cli`** and an interactive **`gfi-scout-tui`**
 - ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache so a `find_issues` call rarely costs more than a handful of requests
 - 🎛️ All scoring weights and thresholds live in [`config/scoring_weights.json`](config/scoring_weights.json) — no magic numbers in code
-- 🧪 67 tests (unit + integration), `mypy --strict` clean, `ruff` clean
+- 🧪 96 tests (unit + integration), `mypy --strict` clean, `ruff` clean
 
 ---
 
@@ -67,6 +68,10 @@ cp .env.example .env
 
 # Run the MCP server (stdio transport)
 uv run gfi-scout
+
+# Or use the standalone CLI/TUI
+uv run gfi-scout-cli find python --min-stars 500
+uv run gfi-scout-tui
 ```
 
 ---
@@ -118,6 +123,20 @@ See [`docs/TOOLS_REFERENCE.md`](docs/TOOLS_REFERENCE.md) for full parameter and 
 
 ---
 
+## CLI and TUI
+
+```bash
+uv run gfi-scout-cli find python --min-stars 500 --max-results 10
+uv run gfi-scout-cli health fastapi/fastapi
+uv run gfi-scout-cli status https://github.com/fastapi/fastapi/issues/12345
+uv run gfi-scout-cli guide pallets/flask
+uv run gfi-scout-tui
+```
+
+Every command supports `--output json` for scripts. See [`docs/CLI.md`](docs/CLI.md).
+
+---
+
 ## How scoring works
 
 ```
@@ -140,12 +159,13 @@ Full breakdown in [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md).
 |---|---|
 | [`docs/SETUP.md`](docs/SETUP.md) | Step-by-step install, env vars, client wiring |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layering rules, request flow, caching, failure model |
+| [`docs/CLI.md`](docs/CLI.md) | Standalone CLI and terminal UI usage |
 | [`docs/TOOLS_REFERENCE.md`](docs/TOOLS_REFERENCE.md) | Parameters and return schemas for every MCP tool |
 | [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md) | How `beginner_score` is computed and graded |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to file issues and ship PRs |
 | [`SECURITY.md`](SECURITY.md) | Responsible-disclosure policy |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Release notes |
-| [`Plan.md`](Plan.md) | Original spec + phase plan |
+| [`docs/Plan.md`](docs/Plan.md) | Original spec + phase plan |
 
 ---
 
@@ -153,7 +173,7 @@ Full breakdown in [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md).
 
 ```bash
 uv sync                              # install everything
-uv run pytest                        # 67 tests in ~2 s
+uv run pytest                        # 96 tests in ~2 s
 uv run ruff check src/ tests/        # lint
 uv run ruff format src/ tests/       # format
 uv run mypy src/                     # strict type-check
@@ -167,7 +187,9 @@ uv run mcp dev src/gfi_scout/server.py  # MCP Inspector
 ```
 src/gfi_scout/
 ├── server.py          # FastMCP entry, tool registration
+├── cli.py             # Standalone CLI + terminal UI
 ├── config.py          # Env loading
+├── runtime.py         # Shared cache/client wiring
 ├── tools/             # One file per MCP tool
 │   ├── find_issues.py
 │   ├── check_repo_health.py

@@ -7,8 +7,7 @@ from mcp.server.fastmcp import FastMCP
 from gfi_scout.config import load_settings
 from gfi_scout.models.issue import ContributionGuide, IssueResult, IssueStatus
 from gfi_scout.models.repo import RepoHealth
-from gfi_scout.services.cache import TTLNamespaceCache
-from gfi_scout.services.github_api import GitHubClient
+from gfi_scout.runtime import make_client
 from gfi_scout.services.scoring_config import get_scoring_config
 from gfi_scout.tools.check_issue_status import (
     check_issue_status as _check_issue_status_impl,
@@ -24,28 +23,6 @@ from gfi_scout.utils.logger import get_logger
 
 mcp = FastMCP("gfi-scout")
 log = get_logger(__name__)
-
-
-def _build_cache(settings_ttl_minutes: int) -> TTLNamespaceCache:
-    """Build a namespaced TTL cache with sensible per-namespace defaults."""
-    cache = TTLNamespaceCache(default_ttl_seconds=settings_ttl_minutes * 60)
-    cache.configure_namespace("search_issues", ttl_seconds=600)
-    cache.configure_namespace("repo", ttl_seconds=settings_ttl_minutes * 60)
-    cache.configure_namespace("repo_pulls", ttl_seconds=settings_ttl_minutes * 60)
-    cache.configure_namespace("repo_contributors", ttl_seconds=settings_ttl_minutes * 60)
-    cache.configure_namespace("issue", ttl_seconds=300)
-    cache.configure_namespace("issue_comments", ttl_seconds=300)
-    cache.configure_namespace("issue_timeline", ttl_seconds=300)
-    cache.configure_namespace("repo_content", ttl_seconds=3600)
-    return cache
-
-
-def _make_client() -> GitHubClient:
-    settings = load_settings()
-    return GitHubClient(
-        token=settings.github_token,
-        cache=_build_cache(settings.cache_ttl_minutes),
-    )
 
 
 @mcp.tool()
@@ -78,7 +55,8 @@ async def find_issues(
             language/label/stars combos return zero hits.
     """
     cfg = get_scoring_config()
-    async with _make_client() as client:
+    settings = load_settings()
+    async with make_client(settings) as client:
         return await _find_issues_impl(
             client,
             language=language,
@@ -90,6 +68,7 @@ async def find_issues(
             sort_by=sort_by,
             topic=topic,
             unassigned_only=unassigned_only,
+            health_concurrency=settings.max_concurrent_requests,
         )
 
 
@@ -101,7 +80,7 @@ async def check_repo_health(repo: str) -> RepoHealth:
         repo: Full repo name, e.g. "fastapi/fastapi".
     """
     cfg = get_scoring_config()
-    async with _make_client() as client:
+    async with make_client() as client:
         return await _check_repo_health_impl(client, repo, cfg=cfg)
 
 
@@ -113,7 +92,7 @@ async def check_issue_status(issue_url: str) -> IssueStatus:
         issue_url: Full GitHub issue URL.
     """
     cfg = get_scoring_config()
-    async with _make_client() as client:
+    async with make_client() as client:
         return await _check_issue_status_impl(client, issue_url, cfg=cfg)
 
 
@@ -124,7 +103,7 @@ async def get_contribution_guide(repo: str) -> ContributionGuide:
     Args:
         repo: Full repo name, e.g. "fastapi/fastapi".
     """
-    async with _make_client() as client:
+    async with make_client() as client:
         return await _get_contribution_guide_impl(client, repo)
 
 

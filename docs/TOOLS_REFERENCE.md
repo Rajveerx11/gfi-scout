@@ -21,6 +21,7 @@ Find beginner-friendly open source issues ranked by likelihood of success.
 | `max_results` | `int` | No | `10` | Results returned (1-25) |
 | `sort_by` | `str` | No | `"beginner_score"` | `"beginner_score"` / `"freshness"` / `"repo_health"` |
 | `topic` | `str` | No | — | GitHub topic filter (e.g. `"web"`, `"cli"`) |
+| `unassigned_only` | `bool` | No | `true` | Exclude issues that already have an assignee |
 
 ### Returns
 
@@ -101,7 +102,7 @@ Before you start working — is the issue actually available?
 | `is_stale` | No activity for `stale_issue_days` (default 60) |
 | `competitor_prs` | Count of open PRs referencing this issue |
 | `maintainer_confirmed` | A maintainer/owner has commented |
-| `availability_verdict` | `"AVAILABLE"` / `"LIKELY_TAKEN"` / `"STALE"` / `"RISKY"` |
+| `availability_verdict` | `"AVAILABLE"` / `"LIKELY_TAKEN"` / `"STALE"` |
 | `notes` | Human-readable caveats |
 
 ---
