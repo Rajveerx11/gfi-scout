@@ -14,10 +14,13 @@ dependencies = [
     "pydantic>=2.10.0",
     "cachetools>=5.5.0",
     "python-dotenv>=1.0.0",
+    "rich>=13.9.0",
 ]
 
 [project.scripts]
 gfi-scout = "gfi_scout.server:main"
+gfi-scout-cli = "gfi_scout.cli:main"
+gfi-scout-tui = "gfi_scout.cli:tui_main"
 
 [project.optional-dependencies]
 research = [

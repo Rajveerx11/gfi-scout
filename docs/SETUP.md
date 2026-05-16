@@ -46,6 +46,17 @@ uv run gfi-scout
 
 This starts the MCP server on stdio. Wire it to a client below.
 
+## Run the CLI or TUI
+
+```bash
+uv run gfi-scout-cli find python --min-stars 500
+uv run gfi-scout-cli health fastapi/fastapi
+uv run gfi-scout-tui
+```
+
+The CLI supports table output by default and `--output json` for scripts.
+See [`CLI.md`](CLI.md) for the full command reference.
+
 ## Wiring clients
 
 ### Claude Desktop
