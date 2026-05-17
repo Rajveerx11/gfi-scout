@@ -10,6 +10,11 @@ delegating to a handler under [`src/gfi_scout/tools/`](../src/gfi_scout/tools/).
 
 Find beginner-friendly open source issues ranked by likelihood of success.
 
+Implementation note: `find_issues` searches repositories first using
+`language`, `topic`, and star-range qualifiers, then lists matching open issues
+inside each candidate repository. This avoids relying on `stars:` inside
+GitHub's issue search, where stars are not an issue-level field.
+
 ### Parameters
 
 | Name | Type | Required | Default | Description |
@@ -30,7 +35,7 @@ Find beginner-friendly open source issues ranked by likelihood of success.
 Key fields per result:
 
 - `title`, `url`, `body_preview`
-- `repo_full_name`, `labels`, `is_assigned`
+- `repo_full_name`, `repo_stars`, `repo_language`, `labels`, `is_assigned`
 - `created_at`, `updated_at`
 - `beginner_score` (0-100)
 - `freshness` (`"fresh"` / `"warm"` / `"stale"`)

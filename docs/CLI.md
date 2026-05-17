@@ -48,7 +48,7 @@ Options:
 | `--topic` | none | GitHub topic filter |
 | `--sort-by` | `beginner_score` | `beginner_score`, `freshness`, or `repo_health` |
 | `--include-assigned` | false | Include issues with assignees |
-| `--no-scoring` | false | Skip repo-health fan-out for faster raw search |
+| `--no-scoring` | false | Skip repo-health scoring for faster repo-first issue listing |
 | `--output` | `table` | `table` or `json` |
 
 ### Repository Health

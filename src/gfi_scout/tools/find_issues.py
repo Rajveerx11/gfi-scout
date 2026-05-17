@@ -259,9 +259,7 @@ async def find_issues(
     flat: list[tuple[RepoSummary, GitHubIssueRaw]] = []
     for repo in repos:
         for issue in issues_by_repo.get(repo.full_name, []):
-            if unassigned_only and (
-                issue.assignee is not None or len(issue.assignees) > 0
-            ):
+            if unassigned_only and (issue.assignee is not None or len(issue.assignees) > 0):
                 continue
             flat.append((repo, issue))
 

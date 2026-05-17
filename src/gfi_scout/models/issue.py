@@ -18,7 +18,7 @@ class GitHubUser(BaseModel):
 
 
 class GitHubIssueRaw(BaseModel):
-    """Minimal slice of the GitHub Search API issue object we actually use."""
+    """Minimal slice of GitHub issue payloads used by tools and scoring."""
 
     model_config = ConfigDict(extra="ignore")
 

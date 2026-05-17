@@ -57,8 +57,10 @@ Namespaces and default TTLs:
 
 | Namespace | TTL | Why |
 |---|---|---|
-| `search_issues` | 10 min | Issue search churns fast |
+| `search_issues` | 10 min | Legacy issue-search client calls churn fast |
+| `search_repositories` | 30 min | Candidate repo discovery changes slower than issues |
 | `repo` | configured (default 30m) | Repo metadata changes slowly |
+| `repo_issues` | 5 min | Open issue availability should stay fresh |
 | `repo_pulls` | 30 min | PR sample drives merge_rate |
 | `repo_contributors` | 30 min | Contributor list barely changes |
 | `issue` / `issue_comments` / `issue_timeline` | 5 min | Issue status must be fresh-ish |
@@ -78,10 +80,12 @@ See [SCORING_ALGORITHM.md](SCORING_ALGORITHM.md) for the formula.
 
 ## Parallelism
 
-`find_issues` issues one search request, then fans out one
-`analyse_repo` call per unique repo in the result set. Concurrency is
-capped by an `asyncio.Semaphore` (default 5) so we don't accidentally
-DoS the GitHub API or our local event loop.
+`find_issues` issues one repository search request, then fans out one
+open-issue listing call per candidate repo. Assigned issues are filtered
+client-side by default. When scoring is enabled, it also fans out one
+`analyse_repo` call per unique repo in the result set. Concurrency is capped
+by `asyncio.Semaphore` instances (default 5) so we don't accidentally DoS the
+GitHub API or our local event loop.
 
 `analyse_repo` itself runs 7 GitHub calls in parallel via
 `asyncio.gather` — repo metadata, recent PRs, contributors, recent

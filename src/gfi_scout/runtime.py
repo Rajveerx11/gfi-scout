@@ -11,7 +11,9 @@ def build_cache(settings_ttl_minutes: int) -> TTLNamespaceCache:
     """Build a namespaced TTL cache with sensible per-namespace defaults."""
     cache = TTLNamespaceCache(default_ttl_seconds=settings_ttl_minutes * 60)
     cache.configure_namespace("search_issues", ttl_seconds=600)
+    cache.configure_namespace("search_repositories", ttl_seconds=1800)
     cache.configure_namespace("repo", ttl_seconds=settings_ttl_minutes * 60)
+    cache.configure_namespace("repo_issues", ttl_seconds=300)
     cache.configure_namespace("repo_pulls", ttl_seconds=settings_ttl_minutes * 60)
     cache.configure_namespace("repo_contributors", ttl_seconds=settings_ttl_minutes * 60)
     cache.configure_namespace("issue", ttl_seconds=300)

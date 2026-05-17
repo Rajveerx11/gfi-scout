@@ -27,14 +27,14 @@ It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server,
 
 ## Features
 
-- 🔎 **`find_issues`** — language + topic + star-range search with a scored, ranked result list
+- 🔎 **`find_issues`** — repo-first language + topic + star-range discovery with scored issue results
 - 🩺 **`check_repo_health`** — merge rate, last commit, CONTRIBUTING/CoC/CI probes → A-F grade
 - ⏱️ **`check_issue_status`** — assignment, linked PRs, staleness, maintainer confirmation → `AVAILABLE` / `LIKELY_TAKEN` / `STALE` verdict
 - 📘 **`get_contribution_guide`** — pulls and summarises `CONTRIBUTING.md`, detects toolchain, estimates setup complexity
 - Terminal commands via **`gfi-scout-cli`** and an interactive **`gfi-scout-tui`**
-- ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache so a `find_issues` call rarely costs more than a handful of requests
+- ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache for repository search, issue listing, and repo-health probes
 - 🎛️ All scoring weights and thresholds live in [`config/scoring_weights.json`](config/scoring_weights.json) — no magic numbers in code
-- 🧪 96 tests (unit + integration), `mypy --strict` clean, `ruff` clean
+- 🧪 100+ tests (unit + integration), `mypy --strict` clean, `ruff` clean
 
 ---
 
@@ -117,7 +117,7 @@ Cursor, Windsurf, and VS Code Copilot each support MCP servers — point them at
 
 | Tool | What it does |
 |---|---|
-| [`find_issues`](docs/TOOLS_REFERENCE.md#find_issues) | Scored search for beginner-friendly issues |
+| [`find_issues`](docs/TOOLS_REFERENCE.md#find_issues) | Repo-first, scored search for beginner-friendly issues |
 | [`check_repo_health`](docs/TOOLS_REFERENCE.md#check_repo_health) | A-F grade for a repository's contributor-friendliness |
 | [`check_issue_status`](docs/TOOLS_REFERENCE.md#check_issue_status) | Is this specific issue actually available to work on? |
 | [`get_contribution_guide`](docs/TOOLS_REFERENCE.md#get_contribution_guide) | Pulls + summarises `CONTRIBUTING.md` / README setup |

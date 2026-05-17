@@ -70,6 +70,99 @@ async def test_search_issues_clamps_per_page(
 
 
 @pytest.mark.asyncio
+async def test_search_repositories_returns_repo_summaries(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    route = respx_mock.get("/search/repositories").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "total_count": 1,
+                "incomplete_results": False,
+                "items": [
+                    {
+                        "full_name": "acme/widgets",
+                        "stargazers_count": 1200,
+                        "language": "Python",
+                        "default_branch": "main",
+                        "open_issues_count": 12,
+                        "topics": ["cli"],
+                    }
+                ],
+            },
+        )
+    )
+
+    result = await github_client.search_repositories(
+        "language:python stars:50..50000",
+        per_page=500,
+        page=0,
+    )
+
+    assert len(result) == 1
+    assert result[0].full_name == "acme/widgets"
+    assert result[0].stars == 1200
+    assert result[0].language == "Python"
+    assert result[0].topics == ["cli"]
+    request = route.calls.last.request
+    assert request.url.params.get("q") == "language:python stars:50..50000"
+    assert request.url.params.get("sort") == "stars"
+    assert request.url.params.get("order") == "desc"
+    assert request.url.params.get("per_page") == "100"
+    assert request.url.params.get("page") == "1"
+
+
+@pytest.mark.asyncio
+async def test_list_repo_issues_filters_prs_and_synthesizes_repo_url(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    route = respx_mock.get("/repos/acme/widgets/issues").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "title": "Real issue",
+                    "html_url": "https://github.com/acme/widgets/issues/1",
+                    "body": "starter task",
+                    "labels": [{"name": "good first issue"}],
+                    "assignee": None,
+                    "assignees": [],
+                    "created_at": "2026-04-01T12:00:00Z",
+                    "updated_at": "2026-05-10T09:30:00Z",
+                },
+                {
+                    "title": "Pull request",
+                    "html_url": "https://github.com/acme/widgets/pull/2",
+                    "pull_request": {"url": "https://api.github.com/repos/acme/widgets/pulls/2"},
+                    "labels": [],
+                    "assignee": None,
+                    "assignees": [],
+                    "created_at": "2026-04-01T12:00:00Z",
+                    "updated_at": "2026-05-10T09:30:00Z",
+                },
+            ],
+        )
+    )
+
+    result = await github_client.list_repo_issues(
+        "acme/widgets",
+        labels=["good first issue", "help wanted"],
+        per_page=500,
+        page=0,
+    )
+
+    assert len(result) == 1
+    assert result[0].title == "Real issue"
+    assert str(result[0].repository_url) == "https://api.github.com/repos/acme/widgets"
+    request = route.calls.last.request
+    assert request.url.params.get("labels") == "good first issue,help wanted"
+    assert request.url.params.get("per_page") == "100"
+    assert request.url.params.get("page") == "1"
+
+
+@pytest.mark.asyncio
 async def test_search_issues_raises_on_4xx(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,

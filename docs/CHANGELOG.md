@@ -9,6 +9,12 @@ and this project adheres to [SemVer](https://semver.org/).
 
 ### Added
 
+- `find_issues` now uses a repo-first discovery flow: search repositories by
+  language/topic/star range, list matching open issues per repo, then score and
+  rank results. This avoids GitHub issue-search queries that incorrectly put
+  `stars:` on issue results.
+- GitHub client helpers for repository search and per-repository issue listing,
+  with dedicated cache namespaces.
 - Standalone `gfi-scout-cli` command suite for issue search, repo health,
   issue status, and contribution-guide inspection.
 - Interactive `gfi-scout-tui` terminal menu backed by the same tool handlers.

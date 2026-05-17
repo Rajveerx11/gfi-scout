@@ -64,9 +64,7 @@ def test_find_command_outputs_json(
         return_value=httpx.Response(200, json=sample_issues["items"][:1])
     )
 
-    exit_code = main(
-        ["find", "python", "--no-scoring", "--include-assigned", "--output", "json"]
-    )
+    exit_code = main(["find", "python", "--no-scoring", "--include-assigned", "--output", "json"])
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)

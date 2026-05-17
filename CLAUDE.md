@@ -51,11 +51,11 @@ Tool handlers (`tools/find_issues.py`, `check_repo_health.py`, `check_issue_stat
 
 ### Parallelism
 
-`find_issues` runs one search, then fans out one `analyse_repo` call per unique repo, capped by `asyncio.Semaphore` (default 5). Each `analyse_repo` runs 7 GitHub calls in parallel via `asyncio.gather`. All I/O is async — no blocking `requests`.
+`find_issues` runs one repository search, fans out per-repo open issue listings, filters assigned issues client-side by default, then fans out one `analyse_repo` call per unique repo when scoring is enabled. Fan-out is capped by `asyncio.Semaphore` (default 5). Each `analyse_repo` runs 7 GitHub calls in parallel via `asyncio.gather`. All I/O is async - no blocking `requests`.
 
 ### Caching
 
-`services/cache.py` is a `TTLNamespaceCache` over `cachetools.TTLCache`. `GitHubClient` reads/writes per-namespace before/after each endpoint call. Namespaces: `search_issues` (10m), `repo` / `repo_pulls` / `repo_contributors` (30m), `issue` / `issue_comments` / `issue_timeline` (5m), `repo_content` (1h). In-memory only; backend swappable via `Cache` protocol.
+`services/cache.py` is a `TTLNamespaceCache` over `cachetools.TTLCache`. `GitHubClient` reads/writes per-namespace before/after each endpoint call. Namespaces: `search_issues` (10m), `search_repositories` (30m), `repo_issues` (5m), `repo` / `repo_pulls` / `repo_contributors` (30m), `issue` / `issue_comments` / `issue_timeline` (5m), `repo_content` (1h). In-memory only; backend swappable via `Cache` protocol.
 
 ### Scoring
 
