@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import argparse
+from collections.abc import Sequence
+from typing import Literal, cast
+
 from mcp.server.fastmcp import FastMCP
 
 from gfi_scout.config import load_settings
@@ -23,6 +27,7 @@ from gfi_scout.utils.logger import get_logger
 
 mcp = FastMCP("gfi-scout")
 log = get_logger(__name__)
+Transport = Literal["stdio", "sse", "streamable-http"]
 
 
 @mcp.tool()
@@ -107,10 +112,50 @@ async def get_contribution_guide(repo: str) -> ContributionGuide:
         return await _get_contribution_guide_impl(client, repo)
 
 
-def main() -> None:
-    """Console-script entry point — runs over stdio for Claude Desktop et al."""
-    log.info("Starting gfi-scout MCP server")
-    mcp.run()
+def build_parser() -> argparse.ArgumentParser:
+    """Build the MCP server command-line parser."""
+    parser = argparse.ArgumentParser(
+        prog="gfi-scout",
+        description="Run the GFI Scout MCP server.",
+    )
+    parser.add_argument(
+        "--transport",
+        choices=("stdio", "sse", "streamable-http"),
+        default="stdio",
+        help="MCP transport to use. Defaults to stdio for local MCP clients.",
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host for sse or streamable-http transports.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for sse or streamable-http transports.",
+    )
+    parser.add_argument(
+        "--mount-path",
+        help="Optional ASGI mount path for sse or streamable-http transports.",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    """Console-script entry point for stdio and local HTTP MCP transports."""
+    args = build_parser().parse_args(argv)
+    transport = cast(Transport, args.transport)
+    mcp.settings.host = cast(str, args.host)
+    mcp.settings.port = cast(int, args.port)
+
+    log.info(
+        "Starting gfi-scout MCP server transport=%s host=%s port=%s",
+        transport,
+        mcp.settings.host,
+        mcp.settings.port,
+    )
+    mcp.run(transport=transport, mount_path=cast(str | None, args.mount_path))
 
 
 if __name__ == "__main__":
