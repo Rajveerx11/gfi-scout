@@ -1,0 +1,5 @@
+# Every change to this repo requires @Rajveerx11's review before merge.
+# Branch protection on `main` enforces this via "Require review from
+# Code Owners".
+
+* @Rajveerx11
