@@ -46,6 +46,22 @@ uv run gfi-scout
 
 This starts the MCP server on stdio. Wire it to a client below.
 
+To expose a localhost MCP endpoint instead:
+
+```bash
+uv run gfi-scout --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
+Then connect HTTP-capable MCP clients to:
+
+```text
+http://127.0.0.1:8000/mcp
+```
+
+For client-specific setup covering Codex, Claude Code, Cursor, Google
+Antigravity, Pi Agent, and Hermes Agent, see
+[`AGENT_CONNECTIONS.md`](AGENT_CONNECTIONS.md).
+
 ## Run the CLI or TUI
 
 ```bash
@@ -76,10 +92,12 @@ Edit `claude_desktop_config.json` (location depends on OS):
 
 Restart Claude Desktop. Ask: *"Find me good first issues in Python."*
 
-### Cursor / Windsurf / VS Code Copilot
+### Cursor / Windsurf / VS Code Copilot / other agents
 
 Add an MCP server entry pointing at the same `uv run` command. Each
-client's docs cover the exact JSON shape.
+client's docs cover the exact JSON shape. Current examples for Codex, Claude
+Code, Cursor, Google Antigravity, Pi Agent, and Hermes Agent are in
+[`AGENT_CONNECTIONS.md`](AGENT_CONNECTIONS.md).
 
 ## Verify
 

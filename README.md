@@ -69,6 +69,9 @@ cp .env.example .env
 # Run the MCP server (stdio transport)
 uv run gfi-scout
 
+# Or expose a local Streamable HTTP MCP endpoint
+uv run gfi-scout --transport streamable-http --host 127.0.0.1 --port 8000
+
 # Or use the standalone CLI/TUI
 uv run gfi-scout-cli find python --min-stars 500
 uv run gfi-scout-tui
@@ -158,6 +161,7 @@ Full breakdown in [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md).
 | Doc | What's in it |
 |---|---|
 | [`docs/SETUP.md`](docs/SETUP.md) | Step-by-step install, env vars, client wiring |
+| [`docs/AGENT_CONNECTIONS.md`](docs/AGENT_CONNECTIONS.md) | Current MCP connection examples for Codex, Claude Code, Cursor, Antigravity, Pi Agent, and Hermes Agent |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layering rules, request flow, caching, failure model |
 | [`docs/CLI.md`](docs/CLI.md) | Standalone CLI and terminal UI usage |
 | [`docs/TOOLS_REFERENCE.md`](docs/TOOLS_REFERENCE.md) | Parameters and return schemas for every MCP tool |
