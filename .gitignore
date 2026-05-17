@@ -41,6 +41,7 @@ Thumbs.db
 # Local agent / tool state
 .claude/settings.local.json
 .aider*
+.gfi-scout-*.log
 
 # Autoresearch runtime output
 eval/results.tsv
