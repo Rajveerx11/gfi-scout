@@ -1,0 +1,173 @@
+name: Bug report
+description: Report unexpected behaviour in GFI Scout (MCP server, CLI, or TUI).
+title: "bug: <short summary>"
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. The more precise the report, the faster the fix.
+
+        Before submitting, please:
+        - Search [existing issues](../issues?q=is%3Aissue) to avoid duplicates.
+        - Re-run with the latest `main` if you can, the bug may already be fixed.
+        - For **security** issues, do not file here — see [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I can reproduce this on the latest `main` (or I have stated the version below).
+          required: true
+        - label: This is not a security vulnerability (those go to SECURITY.md).
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences describing the bug.
+      placeholder: "`find_issues` returns an empty list when `--min-stars` is 0."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Which entry point exhibits the bug?
+      options:
+        - MCP server (stdio / FastMCP tool call)
+        - CLI (`gfi-scout-cli`)
+        - TUI (`gfi-scout-tui`)
+        - Scoring / config (`config/scoring_weights.json`)
+        - Build / packaging / `uv` workflow
+        - Docs
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Affected MCP tool (if applicable)
+      options:
+        - find_issues
+        - check_repo_health
+        - check_issue_status
+        - get_contribution_guide
+        - N/A
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What actually happened? Include exact error messages.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Minimal, deterministic steps. If reporting an MCP issue, include the exact tool name and arguments.
+      value: |
+        1.
+        2.
+        3.
+
+        Tool call (if MCP):
+        ```json
+        {
+          "tool": "find_issues",
+          "arguments": {}
+        }
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / traceback
+      description: Paste log lines, stack trace, or MCP response payload. Redact tokens.
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: GFI Scout version / commit
+      description: Output of `uv run gfi-scout --version` or the commit SHA you built from.
+      placeholder: "0.1.0 or 8cbb719"
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12.4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP client (if surface = MCP server)
+      options:
+        - Claude Desktop
+        - Claude Code
+        - Cursor
+        - Windsurf
+        - MCP Inspector (`mcp dev`)
+        - Custom / other
+        - N/A
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - WSL
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: workarounds
+    attributes:
+      label: Workarounds tried
+      description: What did you try? What didn't help? Helps avoid duplicated triage effort.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Related issues, recent changes, suspect commits, screenshots.
+    validations:
+      required: false

@@ -1,0 +1,187 @@
+name: Defect report
+description: Report a confirmed defect, regression, or quality issue requiring formal tracking (severity + impact).
+title: "defect: <short summary>"
+labels: ["defect", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for **confirmed defects** — regressions, contract violations, data-correctness issues, or quality problems that need severity tracking and a documented root cause.
+
+        Not sure if it is a defect or a bug? Use the [bug report](./bug_report.yml) — triage will reclassify.
+
+        For security vulnerabilities, see [SECURITY.md](../blob/main/SECURITY.md) instead.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and this defect is not already tracked.
+          required: true
+        - label: The behaviour is confirmed reproducible (not a one-off / environmental flake).
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Defect summary
+      description: One paragraph stating the defect, the affected component, and observable impact.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: |
+        - **S1 — Critical:** data loss, security exposure, server crash, full feature broken with no workaround.
+        - **S2 — High:** core feature broken or returning wrong results, workaround exists but painful.
+        - **S3 — Medium:** non-core feature broken, or core feature degraded.
+        - **S4 — Low:** cosmetic, minor, or edge case.
+      options:
+        - S1 — Critical
+        - S2 — High
+        - S3 — Medium
+        - S4 — Low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: defect_type
+    attributes:
+      label: Defect type
+      options:
+        - Regression (worked previously, broken now)
+        - Functional (feature does not meet specification)
+        - Data correctness (wrong scoring / ranking / output)
+        - Performance (latency, throughput, memory)
+        - API contract (response shape, types, Pydantic model)
+        - Concurrency / async / race condition
+        - Cache invalidation / staleness
+        - Build / packaging / dependency
+        - Documentation contradicts behaviour
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - MCP server (stdio / FastMCP tool call)
+        - CLI (`gfi-scout-cli`)
+        - TUI (`gfi-scout-tui`)
+        - Scoring engine (`services/issue_scorer.py`)
+        - GitHub client (`services/github_api.py`)
+        - Repo analyzer (`services/repo_analyzer.py`)
+        - Cache (`services/cache.py`)
+        - Models (`models/`)
+        - Config (`config/scoring_weights.json`)
+        - Build / CI / packaging
+        - Docs
+    validations:
+      required: true
+
+  - type: input
+    id: first_seen
+    attributes:
+      label: First observed version / commit
+      description: Version, tag, or commit SHA where the defect was first observed.
+      placeholder: "0.1.0 or 8cbb719"
+    validations:
+      required: true
+
+  - type: input
+    id: last_known_good
+    attributes:
+      label: Last known good version / commit (regressions only)
+      description: If this is a regression, the most recent version where it worked.
+      placeholder: "0.0.9 or 4c1df30 — leave blank if unknown / not a regression"
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Deterministic, minimal repro. Include exact inputs, configuration, and environment.
+      value: |
+        **Environment:** Python <version>, OS <os>, GFI Scout <commit>
+
+        **Steps:**
+        1.
+        2.
+        3.
+
+        **Input / tool call:**
+        ```json
+        {}
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result (per specification)
+      description: Cite the doc, contract, or test that defines correct behaviour.
+      placeholder: "Per docs/SCORING_ALGORITHM.md §3, `merge_friendliness` should clamp at 100."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Observed output, including verbatim error messages or logs.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact / blast radius
+      description: Who is affected? What workflows break? Is data corrupted? Are scores incorrect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Suspected root cause (optional)
+      description: Initial hypothesis with file/line pointers, if known. Leave blank if unclear.
+      placeholder: "`services/issue_scorer.py:142` — `min()` used where `max()` is correct."
+    validations:
+      required: false
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Known workaround
+      description: Any way to avoid the defect until it is fixed?
+    validations:
+      required: false
+
+  - type: textarea
+    id: regression_test
+    attributes:
+      label: Regression test plan
+      description: How will the fix be verified? Which test file should the new test live in?
+      placeholder: "Add case to `tests/unit/services/test_issue_scorer.py` covering clamping when raw score > 100."
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Linked issues, related PRs, screenshots, log bundles.
+    validations:
+      required: false
