@@ -15,6 +15,7 @@ from types import TracebackType
 from typing import Any, Self
 
 import httpx
+from pydantic import ValidationError
 
 from gfi_scout.models.issue import GitHubIssueRaw, SearchIssuesResponse
 from gfi_scout.models.repo import RepoSummary
@@ -27,7 +28,9 @@ DEFAULT_TIMEOUT_SECONDS = 30.0
 MAX_PER_PAGE = 100
 
 NS_SEARCH = "search_issues"
+NS_SEARCH_REPOS = "search_repositories"
 NS_REPO = "repo"
+NS_REPO_ISSUES = "repo_issues"
 NS_PRS = "repo_pulls"
 NS_CONTRIB = "repo_contributors"
 NS_ISSUE = "issue"
@@ -205,6 +208,56 @@ class GitHubClient:
         self._cache_set(NS_SEARCH, *cache_key, value=parsed)
         return parsed
 
+    async def search_repositories(
+        self,
+        query: str,
+        *,
+        sort: str = "stars",
+        order: str = "desc",
+        per_page: int = 30,
+        page: int = 1,
+    ) -> list[RepoSummary]:
+        """Search GitHub repositories. Returns `RepoSummary` list, cached per param tuple."""
+        if per_page < 1:
+            per_page = 1
+        if per_page > MAX_PER_PAGE:
+            per_page = MAX_PER_PAGE
+        if page < 1:
+            page = 1
+        cache_key = (query, sort, order, per_page, page)
+        cached = self._cache_get(NS_SEARCH_REPOS, *cache_key)
+        if isinstance(cached, list):
+            return cached
+        params: dict[str, Any] = {
+            "q": query,
+            "sort": sort,
+            "order": order,
+            "per_page": per_page,
+            "page": page,
+        }
+        data = await self._get_json("/search/repositories", params=params)
+        raw_items = data.get("items", []) if isinstance(data, dict) else []
+        summaries: list[RepoSummary] = []
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            full_name = item.get("full_name")
+            if not isinstance(full_name, str) or not full_name:
+                continue
+            summaries.append(
+                RepoSummary(
+                    full_name=full_name,
+                    stars=item.get("stargazers_count"),
+                    language=item.get("language"),
+                    default_branch=item.get("default_branch"),
+                    pushed_at=item.get("pushed_at"),
+                    open_issues_count=item.get("open_issues_count"),
+                    topics=list(item.get("topics") or []),
+                )
+            )
+        self._cache_set(NS_SEARCH_REPOS, *cache_key, value=summaries)
+        return summaries
+
     # ---- repositories ----------------------------------------------------
 
     async def get_repo(self, repo_full_name: str) -> RepoSummary:
@@ -273,6 +326,65 @@ class GitHubClient:
         result = list(data) if isinstance(data, list) else []
         self._cache_set(NS_CONTRIB, *cache_key, value=result)
         return result
+
+    async def list_repo_issues(
+        self,
+        repo_full_name: str,
+        *,
+        labels: list[str] | None = None,
+        state: str = "open",
+        per_page: int = 30,
+        page: int = 1,
+    ) -> list[GitHubIssueRaw]:
+        """List issues for a single repo via `/repos/{owner}/{repo}/issues`.
+
+        Filters out pull requests (the endpoint returns both). Synthesises
+        `repository_url` when absent so the result matches the Search API shape.
+        """
+        if per_page < 1:
+            per_page = 1
+        if per_page > MAX_PER_PAGE:
+            per_page = MAX_PER_PAGE
+        if page < 1:
+            page = 1
+        label_key = ",".join(labels) if labels else ""
+        cache_key = (repo_full_name, label_key, state, per_page, page)
+        cached = self._cache_get(NS_REPO_ISSUES, *cache_key)
+        if isinstance(cached, list):
+            return cached
+        params: dict[str, Any] = {
+            "state": state,
+            "per_page": per_page,
+            "page": page,
+        }
+        if labels:
+            params["labels"] = ",".join(labels)
+        data = await self._get_json(
+            f"/repos/{repo_full_name}/issues",
+            params=params,
+            allow_404=True,
+        )
+        raw_items = data if isinstance(data, list) else []
+        parsed: list[GitHubIssueRaw] = []
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            # /repos/.../issues returns PRs too; skip them.
+            if item.get("pull_request"):
+                continue
+            if "repository_url" not in item:
+                item["repository_url"] = f"{GITHUB_API_BASE}/repos/{repo_full_name}"
+            try:
+                parsed.append(GitHubIssueRaw.model_validate(item))
+            except ValidationError as exc:
+                log.warning(
+                    "skipped malformed issue from %s: %s",
+                    repo_full_name,
+                    exc.errors()[0].get("msg") if exc.errors() else exc,
+                )
+                continue
+        self._cache_set(NS_REPO_ISSUES, *cache_key, value=parsed)
+        return parsed
 
     async def list_commits(
         self,
