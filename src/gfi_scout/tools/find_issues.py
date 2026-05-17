@@ -1,12 +1,19 @@
-"""`find_issues` MCP tool — Phase 2 implementation with scoring + parallelism."""
+"""`find_issues` MCP tool — repo-first search with scoring + parallelism.
+
+GitHub's `/search/issues` endpoint does not honour the `stars:` qualifier
+(stars belong to repositories, not issues). The previous query shape
+silently returned zero results against the live API. This implementation
+searches repositories by `stars:` first, then fans out per-repo issue
+listings for the desired labels — a clean two-stage flow that aligns with
+how GitHub's data model is actually shaped.
+"""
 
 from __future__ import annotations
 
 import asyncio
-from urllib.parse import urlparse
 
 from gfi_scout.models.issue import GitHubIssueRaw, IssueResult
-from gfi_scout.models.repo import RepoHealth
+from gfi_scout.models.repo import RepoHealth, RepoSummary
 from gfi_scout.services.github_api import GitHubAPIError, GitHubClient
 from gfi_scout.services.issue_scorer import (
     compute_beginner_score,
@@ -26,44 +33,33 @@ DEFAULT_LABELS = ("good first issue",)
 BODY_PREVIEW_CHARS = 280
 ALLOWED_SORTS = ("beginner_score", "freshness", "repo_health")
 DEFAULT_HEALTH_CONCURRENCY = 5
+DEFAULT_ISSUE_CONCURRENCY = 5
+REPO_OVERFETCH_MULTIPLIER = 3
+REPO_SEARCH_MAX = 30
+PER_REPO_ISSUE_FETCH = 10
 
 log = get_logger(__name__)
 
 
-def build_search_query(
+def build_repo_search_query(
     *,
     language: str,
-    labels: list[str],
     min_stars: int,
     max_stars: int,
     topic: str | None,
-    unassigned_only: bool = True,
 ) -> str:
-    """Compose a GitHub Search API qualifier string.
+    """Compose a GitHub `/search/repositories` qualifier string.
 
-    Inputs are assumed to be pre-validated by the caller (see `validate_label`,
-    `validate_language`, `validate_topic`). Star bounds are coerced to a sane
-    non-negative range before interpolation.
+    Inputs are assumed to be pre-validated (`validate_language`, `validate_topic`).
+    Star bounds are coerced to a sane non-negative range before interpolation.
     """
-    parts: list[str] = []
-    for label in labels:
-        parts.append(f'label:"{label}"')
-    parts.append(f"language:{language}")
+    parts: list[str] = [f"language:{language}"]
     lo = max(0, int(min_stars))
     hi = max(lo, int(max_stars))
     parts.append(f"stars:{lo}..{hi}")
-    parts.append("state:open")
-    parts.append("is:issue")
-    if unassigned_only:
-        parts.append("no:assignee")
     if topic:
         parts.append(f"topic:{topic}")
     return " ".join(parts)
-
-
-def _repo_full_name_from_repository_url(repository_url: str) -> str:
-    path = urlparse(repository_url).path.removeprefix("/repos/")
-    return path.strip("/")
 
 
 def _body_preview(raw_body: str | None) -> str:
@@ -117,29 +113,57 @@ async def _gather_repo_health(
     return dict(pairs)
 
 
+async def _gather_repo_issues(
+    client: GitHubClient,
+    repos: list[RepoSummary],
+    *,
+    labels: list[str],
+    per_repo_limit: int,
+    concurrency: int,
+) -> dict[str, list[GitHubIssueRaw]]:
+    sem = asyncio.Semaphore(concurrency)
+
+    async def one(repo: RepoSummary) -> tuple[str, list[GitHubIssueRaw]]:
+        async with sem:
+            try:
+                issues = await client.list_repo_issues(
+                    repo.full_name,
+                    labels=labels,
+                    state="open",
+                    per_page=per_repo_limit,
+                )
+                return repo.full_name, issues
+            except GitHubAPIError as exc:
+                log.warning("repo issue list failed for %s: %s", repo.full_name, exc)
+                return repo.full_name, []
+
+    pairs = await asyncio.gather(*(one(r) for r in repos))
+    return dict(pairs)
+
+
 def _to_result(
     item: GitHubIssueRaw,
     *,
+    repo_summary: RepoSummary,
     health: RepoHealth | None,
-    cfg: ScoringConfig,
+    cfg: ScoringConfig | None,
     enable_scoring: bool,
 ) -> IssueResult:
     beginner_score_value: int | None = None
     freshness = None
     grade = None
-    if enable_scoring:
+    if enable_scoring and cfg is not None:
         score_payload = compute_beginner_score(item, health, cfg=cfg)
         beginner_score_value = score_payload.score
         freshness = freshness_label(item, cfg)
         grade = health.health_grade if health else None
-    repo_full_name = _repo_full_name_from_repository_url(str(item.repository_url))
     return IssueResult(
         title=item.title,
         url=item.html_url,
         body_preview=_body_preview(item.body),
-        repo_full_name=repo_full_name,
-        repo_stars=None,
-        repo_language=None,
+        repo_full_name=repo_summary.full_name,
+        repo_stars=repo_summary.stars,
+        repo_language=repo_summary.language,
         labels=[label.name for label in item.labels],
         is_assigned=item.assignee is not None or len(item.assignees) > 0,
         created_at=item.created_at,
@@ -164,16 +188,18 @@ async def find_issues(
     unassigned_only: bool = True,
     enable_scoring: bool = True,
     health_concurrency: int = DEFAULT_HEALTH_CONCURRENCY,
+    issue_concurrency: int = DEFAULT_ISSUE_CONCURRENCY,
 ) -> list[IssueResult]:
     """Search GitHub for beginner-friendly issues, scored and ranked.
 
-    Phase 2: pulls repo-health metrics in parallel for every returned issue's
-    repo and computes a `beginner_score` per issue. Sort by `beginner_score`
-    (default), `freshness`, or `repo_health`.
+    Two-stage flow: search repositories matching `language`, `stars`, and
+    optional `topic`; then fan out per-repo issue listings for the requested
+    labels. Repo health is computed in parallel for every matched repo when
+    scoring is enabled. Sort by `beginner_score` (default), `freshness`, or
+    `repo_health`.
 
-    When `unassigned_only=True` (default), the search adds `no:assignee` to
-    filter out tickets someone is already working. Set to False to widen the
-    search — useful when narrow language/label/stars combos return zero hits.
+    When `unassigned_only=True` (default), issues already assigned to someone
+    are filtered out client-side. Set to False to widen the result set.
     """
     cleaned_language = validate_language(language)
     capped = clamp_max_results(max_results)
@@ -183,36 +209,74 @@ async def find_issues(
     if sort_by not in ALLOWED_SORTS:
         sort_by = "beginner_score"
 
-    query = build_search_query(
+    repo_query = build_repo_search_query(
         language=cleaned_language,
-        labels=label_list,
         min_stars=min_stars,
         max_stars=max_stars,
         topic=cleaned_topic,
-        unassigned_only=unassigned_only,
     )
-    log.info("find_issues query=%r max_results=%d sort_by=%s", query, capped, sort_by)
+    repo_search_limit = min(
+        REPO_SEARCH_MAX,
+        max(capped, capped * REPO_OVERFETCH_MULTIPLIER),
+    )
+    log.info(
+        "find_issues repo_query=%r repo_limit=%d labels=%s max_results=%d sort_by=%s",
+        repo_query,
+        repo_search_limit,
+        label_list,
+        capped,
+        sort_by,
+    )
 
     try:
-        response = await client.search_issues(query, per_page=capped, page=1)
+        repos = await client.search_repositories(
+            repo_query,
+            sort="stars",
+            order="desc",
+            per_page=repo_search_limit,
+            page=1,
+        )
     except GitHubAPIError as exc:
-        log.error("find_issues failed: %s", exc)
+        log.error("find_issues repo search failed: %s", exc)
         raise
 
-    items = response.items[:capped]
-    if not items:
+    if not repos:
         return []
 
-    # Compute scoring inputs in parallel.
+    try:
+        issues_by_repo = await _gather_repo_issues(
+            client,
+            repos,
+            labels=label_list,
+            per_repo_limit=PER_REPO_ISSUE_FETCH,
+            concurrency=issue_concurrency,
+        )
+    except GitHubAPIError as exc:
+        log.error("find_issues issue fan-out failed: %s", exc)
+        raise
+
+    repo_summaries: dict[str, RepoSummary] = {r.full_name: r for r in repos}
+    flat: list[tuple[RepoSummary, GitHubIssueRaw]] = []
+    for repo in repos:
+        for issue in issues_by_repo.get(repo.full_name, []):
+            if unassigned_only and (
+                issue.assignee is not None or len(issue.assignees) > 0
+            ):
+                continue
+            flat.append((repo, issue))
+
+    if not flat:
+        return []
+
+    flat = flat[: capped * REPO_OVERFETCH_MULTIPLIER]
+
     healths: dict[str, RepoHealth | None] = {}
-    effective_cfg = cfg
+    effective_cfg: ScoringConfig | None = cfg
     if enable_scoring:
         from gfi_scout.services.scoring_config import get_scoring_config
 
         effective_cfg = cfg or get_scoring_config()
-        unique_repos = sorted(
-            {_repo_full_name_from_repository_url(str(item.repository_url)) for item in items}
-        )
+        unique_repos = sorted({repo.full_name for repo, _ in flat})
         healths = await _gather_repo_health(
             client,
             unique_repos,
@@ -221,14 +285,16 @@ async def find_issues(
         )
 
     results: list[IssueResult] = []
-    for item in items:
-        repo = _repo_full_name_from_repository_url(str(item.repository_url))
+    for repo_summary, issue in flat:
         results.append(
             _to_result(
-                item,
-                health=healths.get(repo) if enable_scoring else None,
-                cfg=effective_cfg if enable_scoring else None,  # type: ignore[arg-type]
+                issue,
+                repo_summary=repo_summaries[repo_summary.full_name],
+                health=healths.get(repo_summary.full_name) if enable_scoring else None,
+                cfg=effective_cfg,
                 enable_scoring=enable_scoring,
             )
         )
-    return _sort_results(results, sort_by)
+
+    sorted_results = _sort_results(results, sort_by)
+    return sorted_results[:capped]

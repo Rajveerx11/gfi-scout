@@ -1,6 +1,8 @@
 """End-to-end test of the find_issues handler with scoring enabled.
 
-Mocks every endpoint the handler touches so the test runs offline.
+Mocks every endpoint the handler touches so the test runs offline. The flow
+is repo-first: `/search/repositories` returns the candidate repos, then each
+repo's `/issues` endpoint is fetched, then scoring fans out per-repo.
 """
 
 from __future__ import annotations
@@ -25,40 +27,70 @@ async def test_find_issues_ranks_by_beginner_score(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,
 ) -> None:
-    # Two repos: one healthy (acme/great), one dead (ghost/town).
-    search_payload = {
+    great = "acme/great"
+    town = "ghost/town"
+
+    repo_search_payload = {
         "total_count": 2,
         "incomplete_results": False,
         "items": [
             {
-                "title": "Fix typo",
-                "html_url": "https://github.com/ghost/town/issues/1",
-                "body": "tiny",
-                "repository_url": "https://api.github.com/repos/ghost/town",
-                "labels": [{"name": "good first issue"}],
-                "assignee": None,
-                "assignees": [],
-                "created_at": _iso(200),
-                "updated_at": _iso(200),
+                "full_name": great,
+                "stargazers_count": 5000,
+                "language": "Python",
+                "topics": [],
             },
             {
-                "title": "Add type hints",
-                "html_url": "https://github.com/acme/great/issues/2",
-                "body": "Please add type hints to widgets/utils.py.\n\n"
-                "Steps to reproduce:\n```\nrun mypy\n```\n" + ("x" * 400),
-                "repository_url": "https://api.github.com/repos/acme/great",
-                "labels": [{"name": "good first issue"}],
-                "assignee": None,
-                "assignees": [],
-                "created_at": _iso(3),
-                "updated_at": _iso(1),
+                "full_name": town,
+                "stargazers_count": 12,
+                "language": "Python",
+                "topics": [],
             },
         ],
     }
-    respx_mock.get("/search/issues").mock(return_value=httpx.Response(200, json=search_payload))
+    respx_mock.get("/search/repositories").mock(
+        return_value=httpx.Response(200, json=repo_search_payload)
+    )
 
-    # Healthy repo
-    great = "acme/great"
+    respx_mock.get(f"/repos/{great}/issues").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "title": "Add type hints",
+                    "html_url": f"https://github.com/{great}/issues/2",
+                    "body": "Please add type hints to widgets/utils.py.\n\n"
+                    "Steps to reproduce:\n```\nrun mypy\n```\n" + ("x" * 400),
+                    "repository_url": f"https://api.github.com/repos/{great}",
+                    "labels": [{"name": "good first issue"}],
+                    "assignee": None,
+                    "assignees": [],
+                    "created_at": _iso(3),
+                    "updated_at": _iso(1),
+                }
+            ],
+        )
+    )
+    respx_mock.get(f"/repos/{town}/issues").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "title": "Fix typo",
+                    "html_url": f"https://github.com/{town}/issues/1",
+                    "body": "tiny",
+                    "repository_url": f"https://api.github.com/repos/{town}",
+                    "labels": [{"name": "good first issue"}],
+                    "assignee": None,
+                    "assignees": [],
+                    "created_at": _iso(200),
+                    "updated_at": _iso(200),
+                }
+            ],
+        )
+    )
+
+    # Healthy repo scoring inputs
     respx_mock.get(f"/repos/{great}").mock(
         return_value=httpx.Response(
             200,
@@ -110,8 +142,7 @@ async def test_find_issues_ranks_by_beginner_score(
             return_value=httpx.Response(status, json=body)
         )
 
-    # Dead repo
-    town = "ghost/town"
+    # Dead repo scoring inputs
     respx_mock.get(f"/repos/{town}").mock(
         return_value=httpx.Response(
             200,
@@ -151,7 +182,6 @@ async def test_find_issues_ranks_by_beginner_score(
     )
 
     assert len(results) == 2
-    # Healthy repo's issue should win.
     assert results[0].repo_full_name == great
     assert results[0].repo_health_grade == "A"
     assert results[0].beginner_score is not None

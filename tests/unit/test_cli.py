@@ -43,18 +43,36 @@ def test_find_command_outputs_json(
     capsys: Any,
 ) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "test-token")
-    route = respx_mock.get("/search/issues").mock(
-        return_value=httpx.Response(200, json=sample_issues)
+    repo_search_route = respx_mock.get("/search/repositories").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "total_count": 1,
+                "incomplete_results": False,
+                "items": [
+                    {
+                        "full_name": "acme/widgets",
+                        "stargazers_count": 1200,
+                        "language": "Python",
+                        "topics": [],
+                    }
+                ],
+            },
+        )
+    )
+    respx_mock.get("/repos/acme/widgets/issues").mock(
+        return_value=httpx.Response(200, json=sample_issues["items"][:1])
     )
 
-    exit_code = main(["find", "python", "--no-scoring", "--output", "json"])
+    exit_code = main(
+        ["find", "python", "--no-scoring", "--include-assigned", "--output", "json"]
+    )
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload[0]["repo_full_name"] == "acme/widgets"
     assert payload[0]["title"] == "Add type hints to utils module"
-    request = route.calls.last.request
-    assert request.url.params.get("per_page") == "10"
+    request = repo_search_route.calls.last.request
     assert "language:python" in (request.url.params.get("q") or "")
 
 
