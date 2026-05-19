@@ -33,7 +33,7 @@ It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server,
 - 📘 **`get_contribution_guide`** — pulls and summarises `CONTRIBUTING.md`, detects toolchain, estimates setup complexity
 - Terminal commands via **`gfi-scout-cli`** and an interactive **`gfi-scout-tui`**
 - ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache for repository search, issue listing, and repo-health probes
-- 🎛️ All scoring weights and thresholds live in [`config/scoring_weights.json`](config/scoring_weights.json) — no magic numbers in code
+- 🎛️ All scoring weights and thresholds live in [`src/gfi_scout/data/scoring_weights.json`](src/gfi_scout/data/scoring_weights.json) — no magic numbers in code
 - 🧪 100+ tests (unit + integration), `mypy --strict` clean, `ruff` clean
 
 ---
@@ -76,6 +76,25 @@ uv run gfi-scout --transport streamable-http --host 127.0.0.1 --port 8000
 uv run gfi-scout-cli find python --min-stars 500
 uv run gfi-scout-tui
 ```
+
+### Install as a global `uv` tool
+
+If you only want to run the MCP server / CLI and don't plan to hack on the code, install it once as a global tool. No checkout, no venv to keep around:
+
+```bash
+# Install (or update) directly from GitHub
+uv tool install --force --from git+https://github.com/Rajveerx11/gfi-scout gfi-scout
+
+# Then the binaries are on $PATH:
+gfi-scout                # MCP server (stdio)
+gfi-scout-cli find python --min-stars 500
+gfi-scout-tui
+
+# Upgrade later:
+uv tool install --force --from git+https://github.com/Rajveerx11/gfi-scout gfi-scout
+```
+
+You still need a `GITHUB_TOKEN` in the environment (or a `.env` in the directory you run from).
 
 ---
 
@@ -150,7 +169,7 @@ beginner_score = repo_health        × 0.30
                + setup_complexity_inv × 0.10
 ```
 
-Every weight and threshold is loaded from [`config/scoring_weights.json`](config/scoring_weights.json). Want to retune the ranker? Edit the JSON and re-run — no code changes.
+Every weight and threshold is loaded from [`src/gfi_scout/data/scoring_weights.json`](src/gfi_scout/data/scoring_weights.json). Want to retune the ranker? Edit the JSON and re-run — no code changes.
 
 Full breakdown in [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md).
 
@@ -204,12 +223,31 @@ src/gfi_scout/
 └── utils/             # Pure helpers (validators, rate limiter, logger)
 
 tests/                 # mirrors src/ layout
-config/                # tunable JSON (scoring weights, defaults)
 docs/                  # markdown docs
 scripts/               # dev automation (setup.sh, seed_cache.py)
 ```
 
+> The scoring config lives inside the package at `src/gfi_scout/data/scoring_weights.json` so it ships with the installed wheel — no separate top-level `config/` directory. (The runtime settings module `gfi_scout/config.py` is unrelated; `data/` holds JSON, `config.py` reads env vars.)
+
 Layer rules and folder contracts: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## Troubleshooting
+
+**`scoring config not found: .../Lib/config/scoring_weights.json`**
+
+You're on an old install (≤ v0.1.0) where the scoring config wasn't bundled into the wheel. Fix:
+
+```bash
+uv tool install --force --from git+https://github.com/Rajveerx11/gfi-scout gfi-scout
+```
+
+If a long-running MCP server process holds the install directory open on Windows (`Access is denied` during reinstall), stop the host (Claude Desktop / Claude Code / Cursor) or kill the `gfi-scout` Python process first, then re-run the command.
+
+**`Missing required environment variable: GITHUB_TOKEN`**
+
+The CLI / MCP server reads `GITHUB_TOKEN` from the environment or a `.env` file in the working directory. For `uv tool` installs, either export it in your shell profile or set it in the MCP client's `env` block (see *Connecting to an MCP client* above).
 
 ---
 

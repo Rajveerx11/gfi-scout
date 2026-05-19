@@ -67,7 +67,7 @@ beginner_score = repo_health × 0.30 + issue_freshness × 0.20
                + setup_complexity_inv × 0.10
 ```
 
-Every weight and threshold is loaded from `config/scoring_weights.json` via `services/scoring_config.py`. **No magic numbers in code** — retune by editing JSON. Bad config raises `ScoringConfigError` on first scoring call. Changes to scoring behaviour require updating `docs/SCORING_ALGORITHM.md` and a regression test.
+Every weight and threshold is loaded from `src/gfi_scout/data/scoring_weights.json` (bundled inside the installed package) via `services/scoring_config.py`, which resolves it through `importlib.resources`. **No magic numbers in code** — retune by editing JSON. Bad config raises `ScoringConfigError` on first scoring call. Changes to scoring behaviour require updating `docs/SCORING_ALGORITHM.md` and a regression test.
 
 ### Failure model
 

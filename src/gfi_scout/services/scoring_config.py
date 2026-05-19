@@ -5,9 +5,16 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from functools import lru_cache
+from importlib import resources
 from pathlib import Path
 
-DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "scoring_weights.json"
+
+def _default_path() -> Path:
+    """Resolve bundled scoring config from the installed package."""
+    return Path(str(resources.files("gfi_scout.data").joinpath("scoring_weights.json")))
+
+
+DEFAULT_PATH = _default_path()
 
 
 class ScoringConfigError(RuntimeError):
