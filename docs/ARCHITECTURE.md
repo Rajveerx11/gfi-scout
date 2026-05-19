@@ -74,7 +74,7 @@ implementing the `Cache` protocol.
 The composite `beginner_score` is computed in
 [`services/issue_scorer.py`](../src/gfi_scout/services/issue_scorer.py).
 Every threshold and weight is read from
-[`src/gfi_scout/config/scoring_weights.json`](../src/gfi_scout/config/scoring_weights.json) via
+[`src/gfi_scout/data/scoring_weights.json`](../src/gfi_scout/data/scoring_weights.json) via
 [`services/scoring_config.py`](../src/gfi_scout/services/scoring_config.py).
 See [SCORING_ALGORITHM.md](SCORING_ALGORITHM.md) for the formula.
 

@@ -4,7 +4,7 @@ GFI Scout's job is to rank "good first issue" candidates by how likely a
 beginner is to *actually succeed* — not just find. This page documents how
 that ranking is computed.
 
-All weights and thresholds live in [`src/gfi_scout/config/scoring_weights.json`](../src/gfi_scout/config/scoring_weights.json).
+All weights and thresholds live in [`src/gfi_scout/data/scoring_weights.json`](../src/gfi_scout/data/scoring_weights.json).
 There are no magic numbers in the Python code; if you want to retune the
 ranker, edit that file.
 
@@ -118,7 +118,7 @@ The weights must sum to `1.0` (±0.01). The loader (`services/scoring_config.py`
 validates this on startup; bad config raises `ScoringConfigError`. Each
 field is type-checked.
 
-To experiment with a different ranking, copy `src/gfi_scout/config/scoring_weights.json`,
+To experiment with a different ranking, copy `src/gfi_scout/data/scoring_weights.json`,
 tweak, then run:
 
 ```bash

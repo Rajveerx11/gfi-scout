@@ -33,7 +33,7 @@ It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server,
 - 📘 **`get_contribution_guide`** — pulls and summarises `CONTRIBUTING.md`, detects toolchain, estimates setup complexity
 - Terminal commands via **`gfi-scout-cli`** and an interactive **`gfi-scout-tui`**
 - ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache for repository search, issue listing, and repo-health probes
-- 🎛️ All scoring weights and thresholds live in [`src/gfi_scout/config/scoring_weights.json`](src/gfi_scout/config/scoring_weights.json) — no magic numbers in code
+- 🎛️ All scoring weights and thresholds live in [`src/gfi_scout/data/scoring_weights.json`](src/gfi_scout/data/scoring_weights.json) — no magic numbers in code
 - 🧪 100+ tests (unit + integration), `mypy --strict` clean, `ruff` clean
 
 ---
@@ -169,7 +169,7 @@ beginner_score = repo_health        × 0.30
                + setup_complexity_inv × 0.10
 ```
 
-Every weight and threshold is loaded from [`src/gfi_scout/config/scoring_weights.json`](src/gfi_scout/config/scoring_weights.json). Want to retune the ranker? Edit the JSON and re-run — no code changes.
+Every weight and threshold is loaded from [`src/gfi_scout/data/scoring_weights.json`](src/gfi_scout/data/scoring_weights.json). Want to retune the ranker? Edit the JSON and re-run — no code changes.
 
 Full breakdown in [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md).
 
@@ -227,7 +227,7 @@ docs/                  # markdown docs
 scripts/               # dev automation (setup.sh, seed_cache.py)
 ```
 
-> The scoring config lives inside the package at `src/gfi_scout/config/scoring_weights.json` so it ships with the installed wheel — no separate top-level `config/` directory.
+> The scoring config lives inside the package at `src/gfi_scout/data/scoring_weights.json` so it ships with the installed wheel — no separate top-level `config/` directory. (The runtime settings module `gfi_scout/config.py` is unrelated; `data/` holds JSON, `config.py` reads env vars.)
 
 Layer rules and folder contracts: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 

@@ -11,7 +11,7 @@ from pathlib import Path
 
 def _default_path() -> Path:
     """Resolve bundled scoring config from the installed package."""
-    return Path(str(resources.files("gfi_scout.config").joinpath("scoring_weights.json")))
+    return Path(str(resources.files("gfi_scout.data").joinpath("scoring_weights.json")))
 
 
 DEFAULT_PATH = _default_path()
