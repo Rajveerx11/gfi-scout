@@ -109,7 +109,34 @@ Source: [OpenAI Codex MCP docs](https://developers.openai.com/codex/mcp).
 Claude Code supports local, project, and user scopes. Project scope writes a shared
 `.mcp.json`; local/user scopes are private in `~/.claude.json`.
 
-### CLI add command
+Pick the scope that matches how you want to use the server:
+
+| Scope | Available where | Best for |
+|---|---|---|
+| **user** | Every Claude Code session on this machine, any folder | Daily driver — recommended |
+| **project** | Anyone who opens this repo | Sharing with collaborators |
+| **local** | Just you, only inside this repo | Quick local testing |
+
+### User scope (run from anywhere) — recommended
+
+Requires `uv tool install .` from the repo root first so the `gfi-scout`
+executable is on your `PATH` (see [`SETUP.md`](SETUP.md)).
+
+```powershell
+# Windows (PowerShell)
+claude mcp add --scope user gfi-scout "C:\Users\<you>\.local\bin\gfi-scout.exe" -e GITHUB_TOKEN=<your_token>
+```
+
+```bash
+# macOS / Linux
+claude mcp add --scope user gfi-scout "$(which gfi-scout)" -e GITHUB_TOKEN=<your_token>
+```
+
+After this, open Claude Code in *any* directory — `gfi-scout` auto-launches as
+a stdio subprocess. No manual start command needed. Use `/mcp` inside the
+session to inspect status, or `claude mcp list` from any terminal.
+
+### Project / local scope (from the repo)
 
 Run from this project:
 

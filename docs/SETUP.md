@@ -40,16 +40,51 @@ cp .env.example .env
 
 ## Run the server
 
+### Project-local (from the repo root)
+
 ```bash
 uv run gfi-scout
 ```
 
-This starts the MCP server on stdio. Wire it to a client below.
+This starts the MCP server on stdio using the project's `.venv`. Use this for
+development inside the repo.
 
-To expose a localhost MCP endpoint instead:
+### Global (run from anywhere)
+
+Install once as a `uv` tool — the `gfi-scout`, `gfi-scout-cli`, and
+`gfi-scout-tui` executables land on your `PATH` and work from any directory:
 
 ```bash
-uv run gfi-scout --transport streamable-http --host 127.0.0.1 --port 8000
+uv tool install .
+```
+
+Then, from any folder:
+
+```bash
+gfi-scout                  # MCP server (stdio)
+gfi-scout-cli find python  # CLI
+gfi-scout-tui              # interactive TUI
+```
+
+Verify the binary location:
+
+```powershell
+where.exe gfi-scout   # Windows
+which gfi-scout       # macOS / Linux
+```
+
+To upgrade after pulling new code:
+
+```bash
+uv tool install --force .
+```
+
+### Localhost HTTP endpoint
+
+To expose an HTTP MCP endpoint instead of stdio:
+
+```bash
+gfi-scout --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
 Then connect HTTP-capable MCP clients to:
@@ -57,6 +92,32 @@ Then connect HTTP-capable MCP clients to:
 ```text
 http://127.0.0.1:8000/mcp
 ```
+
+### Wire into Claude Code (available in every session, every folder)
+
+After `uv tool install .`, register `gfi-scout` at **user scope** so it auto-launches
+inside any Claude Code session, in any directory on your machine:
+
+```powershell
+# Windows (PowerShell)
+claude mcp add --scope user gfi-scout "C:\Users\<you>\.local\bin\gfi-scout.exe" -e GITHUB_TOKEN=<your_token>
+```
+
+```bash
+# macOS / Linux
+claude mcp add --scope user gfi-scout "$(which gfi-scout)" -e GITHUB_TOKEN=<your_token>
+```
+
+Verify:
+
+```bash
+claude mcp list           # expect: gfi-scout  ... ✓ Connected
+claude mcp get gfi-scout  # expect: Scope: User config (available in all your projects)
+```
+
+Inside any Claude Code session, run `/mcp` to see the live status panel. No
+manual start command is needed — Claude Code spawns the stdio subprocess on
+session launch.
 
 For client-specific setup covering Codex, Claude Code, Cursor, Google
 Antigravity, Pi Agent, and Hermes Agent, see

@@ -9,6 +9,10 @@ and this project adheres to [SemVer](https://semver.org/).
 
 ### Added
 
+- Documented global install via `uv tool install .` and user-scope Claude Code
+  registration (`claude mcp add --scope user`) so the MCP server is available
+  in every Claude Code session, in any directory. See `SETUP.md` and
+  `AGENT_CONNECTIONS.md`.
 - `find_issues` now uses a repo-first discovery flow: search repositories by
   language/topic/star range, list matching open issues per repo, then score and
   rank results. This avoids GitHub issue-search queries that incorrectly put
