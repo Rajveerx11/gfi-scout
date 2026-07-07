@@ -177,9 +177,39 @@ async def test_search_issues_raises_on_4xx(
     assert exc_info.value.status_code == 422
 
 
-def test_constructor_requires_token() -> None:
-    with pytest.raises(ValueError, match="token"):
-        GitHubClient(token="")
+@pytest.mark.asyncio
+async def test_tokenless_client_omits_auth_header(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(200, json=sample_issues)
+    )
+
+    async with GitHubClient(token=None) as client:
+        await client.search_issues("language:python")
+
+    assert "authorization" not in route.calls.last.request.headers
+
+
+@pytest.mark.asyncio
+async def test_403_tokenless_hints_to_set_token(
+    respx_mock: respx.MockRouter,
+) -> None:
+    respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(
+            403,
+            headers={"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "1700000000"},
+            json={"message": "API rate limit exceeded"},
+        )
+    )
+
+    async with GitHubClient(token=None) as client:
+        with pytest.raises(GitHubAPIError) as exc_info:
+            await client.search_issues("q")
+
+    assert "60/hour" in str(exc_info.value)
+    assert "GITHUB_TOKEN" in str(exc_info.value)
 
 
 def test_base_url_default() -> None:

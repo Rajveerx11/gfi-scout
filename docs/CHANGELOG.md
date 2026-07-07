@@ -9,6 +9,11 @@ and this project adheres to [SemVer](https://semver.org/).
 
 ### Added
 
+- **Tokenless mode**: `GITHUB_TOKEN` is now optional. Without a token the
+  client runs unauthenticated at GitHub's 60 requests/hour limit, logs a
+  startup warning, and rate-limit errors explain how to raise the limit to
+  5,000/hour with a `public_repo` PAT. First run now works with zero setup.
+
 - Documented global install via `uv tool install .` and user-scope Claude Code
   registration (`claude mcp add --scope user`) so the MCP server is available
   in every Claude Code session, in any directory. See `SETUP.md` and

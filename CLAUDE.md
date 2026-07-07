@@ -30,7 +30,7 @@ uv run mypy src/                         # strict type-check (must pass)
 
 All three of `ruff`, `mypy`, `pytest` must pass before any push. `uv.lock` is committed.
 
-Environment: copy `.env.example` → `.env` and set `GITHUB_TOKEN` (PAT with `public_repo` scope, read-only). Missing token raises `ConfigError` at startup.
+Environment: `GITHUB_TOKEN` is optional — without it the client runs unauthenticated at 60 req/h and logs a warning; a PAT with `public_repo` scope (read-only) gives 5,000 req/h. Copy `.env.example` → `.env` to set it.
 
 ## Architecture
 
