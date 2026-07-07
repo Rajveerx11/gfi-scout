@@ -44,7 +44,7 @@ It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server,
 |---|---|
 | Python | **3.12+** |
 | Package manager | [`uv`](https://docs.astral.sh/uv/) (all commands go through `uv`) |
-| Auth | GitHub Personal Access Token with **`public_repo`** scope (read-only) |
+| Auth | Optional — works without a token at 60 req/h; a PAT with **`public_repo`** scope (read-only) raises it to 5,000 req/h |
 
 ---
 
@@ -62,7 +62,7 @@ cd gfi-scout
 # Install dependencies (creates .venv automatically)
 uv sync
 
-# Configure environment
+# Optional: add a GitHub token (60 req/h without one, 5,000 req/h with)
 cp .env.example .env
 # edit .env and paste your GitHub token
 
@@ -94,7 +94,7 @@ gfi-scout-tui
 uv tool install --force --from git+https://github.com/Rajveerx11/gfi-scout gfi-scout
 ```
 
-You still need a `GITHUB_TOKEN` in the environment (or a `.env` in the directory you run from).
+A `GITHUB_TOKEN` in the environment (or a `.env` in the directory you run from) is optional — without one you run at GitHub's unauthenticated 60 requests/hour limit.
 
 ---
 
@@ -245,9 +245,9 @@ uv tool install --force --from git+https://github.com/Rajveerx11/gfi-scout gfi-s
 
 If a long-running MCP server process holds the install directory open on Windows (`Access is denied` during reinstall), stop the host (Claude Desktop / Claude Code / Cursor) or kill the `gfi-scout` Python process first, then re-run the command.
 
-**`Missing required environment variable: GITHUB_TOKEN`**
+**Results are slow or you hit `rate limit exceeded` quickly**
 
-The CLI / MCP server reads `GITHUB_TOKEN` from the environment or a `.env` file in the working directory. For `uv tool` installs, either export it in your shell profile or set it in the MCP client's `env` block (see *Connecting to an MCP client* above).
+You're probably running without a token (60 requests/hour). Set `GITHUB_TOKEN` — from the environment or a `.env` file in the working directory — to get 5,000 requests/hour. For `uv tool` installs, either export it in your shell profile or set it in the MCP client's `env` block (see *Connecting to an MCP client* above).
 
 ---
 

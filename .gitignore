@@ -50,3 +50,6 @@ eval/results.tsv
 scripts/smoke_test.py
 scripts/workflow_demo.py
 scripts/workflow_multi.py
+
+# Git worktrees
+.worktrees/

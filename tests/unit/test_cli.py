@@ -74,10 +74,37 @@ def test_find_command_outputs_json(
     assert "language:python" in (request.url.params.get("q") or "")
 
 
-def test_missing_token_returns_nonzero(monkeypatch: Any, capsys: Any) -> None:
+def test_missing_token_runs_unauthenticated(
+    monkeypatch: Any,
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    capsys: Any,
+) -> None:
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    repo_search_route = respx_mock.get("/search/repositories").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "total_count": 1,
+                "incomplete_results": False,
+                "items": [
+                    {
+                        "full_name": "acme/widgets",
+                        "stargazers_count": 1200,
+                        "language": "Python",
+                        "topics": [],
+                    }
+                ],
+            },
+        )
+    )
+    respx_mock.get("/repos/acme/widgets/issues").mock(
+        return_value=httpx.Response(200, json=sample_issues["items"][:1])
+    )
 
-    exit_code = main(["find", "python", "--no-scoring", "--output", "json"])
+    exit_code = main(["find", "python", "--no-scoring", "--include-assigned", "--output", "json"])
 
-    assert exit_code == 1
-    assert "Missing required environment variable: GITHUB_TOKEN" in capsys.readouterr().err
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload[0]["repo_full_name"] == "acme/widgets"
+    assert "authorization" not in repo_search_route.calls.last.request.headers
