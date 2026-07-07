@@ -2,6 +2,8 @@
 
 # GFI Scout
 
+![gfi-scout Demo](docs/assets/demo.gif)
+
 **An MCP server and standalone CLI that finds open source issues where beginners actually succeed — not just any issue tagged `good first issue`.**
 
 [![CI](https://github.com/Rajveerx11/gfi-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajveerx11/gfi-scout/actions/workflows/ci.yml)
