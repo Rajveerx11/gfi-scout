@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import importlib.metadata
 import json
 from typing import Any
 
 import httpx
+import pytest
 import respx
 
 from gfi_scout.cli import build_parser, main
@@ -11,7 +13,6 @@ from gfi_scout.cli import build_parser, main
 
 def test_parser_accepts_find_options() -> None:
     parser = build_parser()
-
     args = parser.parse_args(
         [
             "find",
@@ -26,7 +27,6 @@ def test_parser_accepts_find_options() -> None:
             "json",
         ]
     )
-
     assert args.command == "find"
     assert args.language == "python"
     assert args.labels == "good first issue,help wanted"
@@ -34,6 +34,13 @@ def test_parser_accepts_find_options() -> None:
     assert args.include_assigned is True
     assert args.no_scoring is True
     assert args.output == "json"
+
+
+def test_cli_parser_version_flag(capsys: Any) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        build_parser().parse_args(["--version"])
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out.strip() == f"gfi-scout {importlib.metadata.version('gfi-scout')}"
 
 
 def test_find_command_outputs_json(

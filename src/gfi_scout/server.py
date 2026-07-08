@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 from collections.abc import Sequence
 from typing import Literal, cast
 
@@ -117,6 +118,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="gfi-scout",
         description="Run the GFI Scout MCP server.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"gfi-scout {importlib.metadata.version('gfi-scout')}",
     )
     parser.add_argument(
         "--transport",
