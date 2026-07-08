@@ -70,21 +70,26 @@ class GitHubClient:
 
     def __init__(
         self,
-        token: str,
+        token: str | None,
         *,
         base_url: str = GITHUB_API_BASE,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
         client: httpx.AsyncClient | None = None,
         cache: Cache | None = None,
     ) -> None:
-        if not token:
-            raise ValueError("GitHub token is required")
+        self._authenticated = bool(token)
         headers = {
-            "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": GITHUB_API_VERSION,
-            "User-Agent": "gfi-scout/0.1.0",
+            "User-Agent": "gfi-scout",
         }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        else:
+            log.warning(
+                "No GITHUB_TOKEN set — running unauthenticated at 60 requests/hour. "
+                "Set GITHUB_TOKEN (PAT with public_repo scope) for 5,000 requests/hour."
+            )
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(
             base_url=base_url,
@@ -168,6 +173,11 @@ class GitHubClient:
         elif status == 403:
             reset_time = _format_reset_time(rate_reset)
             message = f"GitHub API rate limit exceeded. Resets at {reset_time}. Try again later."
+            if not self._authenticated:
+                message += (
+                    " Unauthenticated requests are limited to 60/hour — set GITHUB_TOKEN "
+                    "(PAT with public_repo scope) for 5,000/hour."
+                )
         elif status == 404:
             raise GitHubNotFoundError(
                 404,

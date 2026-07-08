@@ -4,7 +4,7 @@
 
 - Python 3.12+
 - [`uv`](https://docs.astral.sh/uv/) (we use it for everything)
-- A GitHub Personal Access Token with `public_repo` scope
+- Optional: a GitHub Personal Access Token with `public_repo` scope (60 req/h without one, 5,000 req/h with)
 
 ## Install
 
@@ -33,7 +33,7 @@ cp .env.example .env
 
 | Key | Default | Description |
 |---|---|---|
-| `GITHUB_TOKEN` | — | **Required.** PAT with `public_repo` scope |
+| `GITHUB_TOKEN` | — | Optional. PAT with `public_repo` scope; unauthenticated = 60 req/h |
 | `CACHE_TTL_MINUTES` | `30` | Default cache TTL |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 | `MAX_CONCURRENT_REQUESTS` | `5` | Parallel GitHub call cap |
@@ -179,7 +179,7 @@ If all three pass, you're set.
 
 | Symptom | Likely cause |
 |---|---|
-| `ConfigError: Missing required environment variable: GITHUB_TOKEN` | `.env` missing or malformed |
+| `rate limit exceeded` after a few searches | No `GITHUB_TOKEN` set (60 req/h) — add a token for 5,000 req/h |
 | `GitHubAPIError 401` | Token expired or wrong scope |
 | `GitHubAPIError 403` with `rate limit` | Cache is empty + you're hammering — wait an hour or wire Redis |
 | Server starts but client sees no tools | MCP client config path / command mismatch |
