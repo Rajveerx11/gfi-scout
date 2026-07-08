@@ -8,7 +8,8 @@ and this project adheres to [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-
+- **`--version` flag**: `gfi-scout --version` and `gfi-scout-cli --version`
+  print the installed package version and exit.
 - **Tokenless mode**: `GITHUB_TOKEN` is now optional. Without a token the
   client runs unauthenticated at GitHub's 60 requests/hour limit, logs a
   startup warning, and rate-limit errors explain how to raise the limit to
