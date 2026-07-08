@@ -19,6 +19,6 @@
   "allow_deletions": false,
   "required_conversation_resolution": true,
   "lock_branch": false,
-  "allow_fork_syncing": false,
+  "allow_fork_syncing": true,
   "block_creations": false
 }
