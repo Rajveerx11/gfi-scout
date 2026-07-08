@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 from collections.abc import Sequence
 from typing import Literal, cast
 
@@ -112,11 +113,23 @@ async def get_contribution_guide(repo: str) -> ContributionGuide:
         return await _get_contribution_guide_impl(client, repo)
 
 
+def _package_version() -> str:
+    try:
+        return importlib.metadata.version("gfi-scout")
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the MCP server command-line parser."""
     parser = argparse.ArgumentParser(
         prog="gfi-scout",
         description="Run the GFI Scout MCP server.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"gfi-scout {_package_version()}",
     )
     parser.add_argument(
         "--transport",

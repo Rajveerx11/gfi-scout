@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import importlib.metadata
 import json
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import datetime
@@ -305,10 +306,22 @@ def _add_output_arg(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _package_version() -> str:
+    try:
+        return importlib.metadata.version("gfi-scout")
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="gfi-scout-cli",
         description="Standalone CLI and terminal UI for GFI Scout.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"gfi-scout {_package_version()}",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
