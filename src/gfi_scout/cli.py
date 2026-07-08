@@ -306,6 +306,13 @@ def _add_output_arg(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _package_version() -> str:
+    try:
+        return importlib.metadata.version("gfi-scout")
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="gfi-scout-cli",
@@ -314,7 +321,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"gfi-scout {importlib.metadata.version('gfi-scout')}",
+        version=f"gfi-scout {_package_version()}",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
