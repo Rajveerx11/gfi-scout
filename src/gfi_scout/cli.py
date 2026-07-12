@@ -200,6 +200,7 @@ async def run_find(args: argparse.Namespace, *, out: Console = console) -> int:
         render_issues(results, out=out)
     return 0
 
+
 async def run_health(args: argparse.Namespace, *, out: Console = console) -> int:
     cfg = get_scoring_config()
     async with make_client() as client:
