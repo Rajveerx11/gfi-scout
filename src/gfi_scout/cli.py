@@ -173,6 +173,10 @@ def _bullet_block(items: list[str]) -> str:
 
 async def run_find(args: argparse.Namespace, *, out: Console = console) -> int:
     settings = load_settings()
+    if settings.github_token is None:
+        error_console.print(
+            "[dim]Running unauthenticated (60 req/h) — set GITHUB_TOKEN for 5,000 req/h.[/dim]"
+        )
     cfg = get_scoring_config()
     labels = _split_csv(cast(str | None, args.labels))
     async with make_client(settings) as client:
@@ -195,7 +199,6 @@ async def run_find(args: argparse.Namespace, *, out: Console = console) -> int:
     else:
         render_issues(results, out=out)
     return 0
-
 
 async def run_health(args: argparse.Namespace, *, out: Console = console) -> int:
     cfg = get_scoring_config()
