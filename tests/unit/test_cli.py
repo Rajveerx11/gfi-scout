@@ -115,3 +115,77 @@ def test_missing_token_runs_unauthenticated(
     payload = json.loads(capsys.readouterr().out)
     assert payload[0]["repo_full_name"] == "acme/widgets"
     assert "authorization" not in repo_search_route.calls.last.request.headers
+
+
+def test_missing_token_shows_tokenless_hint_on_stderr(
+    monkeypatch: Any,
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    capsys: Any,
+) -> None:
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    respx_mock.get("/search/repositories").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "total_count": 1,
+                "incomplete_results": False,
+                "items": [
+                    {
+                        "full_name": "acme/widgets",
+                        "stargazers_count": 1200,
+                        "language": "Python",
+                        "topics": [],
+                    }
+                ],
+            },
+        )
+    )
+    respx_mock.get("/repos/acme/widgets/issues").mock(
+        return_value=httpx.Response(200, json=sample_issues["items"][:1])
+    )
+
+    exit_code = main(["find", "python", "--no-scoring", "--include-assigned", "--output", "json"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "Running unauthenticated (60 req/h)" in captured.err
+    assert "5,000 req/h" in captured.err
+    # stdout must remain valid JSON, unpolluted by the hint
+    payload = json.loads(captured.out)
+    assert payload[0]["repo_full_name"] == "acme/widgets"
+
+
+def test_token_present_hides_tokenless_hint(
+    monkeypatch: Any,
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    capsys: Any,
+) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    respx_mock.get("/search/repositories").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "total_count": 1,
+                "incomplete_results": False,
+                "items": [
+                    {
+                        "full_name": "acme/widgets",
+                        "stargazers_count": 1200,
+                        "language": "Python",
+                        "topics": [],
+                    }
+                ],
+            },
+        )
+    )
+    respx_mock.get("/repos/acme/widgets/issues").mock(
+        return_value=httpx.Response(200, json=sample_issues["items"][:1])
+    )
+
+    exit_code = main(["find", "python", "--no-scoring", "--include-assigned", "--output", "json"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "Running unauthenticated" not in captured.err
