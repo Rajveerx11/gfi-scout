@@ -62,7 +62,7 @@
           "issue_url": "https://github.com/DjangoCRM/django-crm/issues/467",
           "repo": "DjangoCRM/django-crm",
           "expected_verdict": "good",
-          "reason": "Simple feature request with clear ask and completed implementaton",
+          "reason": "simple feature request with clear ask and completed implementation",
           "labeled_by": "seed",
           "labeled_date": "2026-07-10"
         },
@@ -83,12 +83,12 @@
           "labeled_date": "2026-07-14"
         },
         {
-          "issue_url": "https://github.com/Dari0o/Backup-Manager/issues/2",
-          "repo": "Dari0o/Backup-Manager",
+          "issue_url": "https://github.com/dipeshbabu/agentloop/issues/29",
+          "repo": "dipeshbabu/agentloop",
           "expected_verdict": "good",
-          "reason": "Optimized backup achive creation, simple performance improvement that was completed",
+          "reason": "Fixed trace loader silently generating demo data instead of failing when requested path is missing",
           "labeled_by": "seed",
-          "labeled_date": "2026-07-15"
+          "labeled_date": "2026-07-14"
         }
 
       ]
