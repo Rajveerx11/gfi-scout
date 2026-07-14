@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Rajveerx11/gfi-scout",
+  "description": "Finds open source issues where beginners actually succeed, ranked by a 0-100 beginner score.",
+  "version": "0.2.0",
+  "repository": {
+    "url": "https://github.com/Rajveerx11/gfi-scout",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "gfi-scout",
+      "version": "0.2.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
