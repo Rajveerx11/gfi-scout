@@ -1,7 +1,7 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Rajveerx11/gfi-scout",
-  "description": "MCP server that finds open source issues where beginners actually succeed — ranks by a composite beginner_score (0-100).",
+  "description": "Finds open source issues where beginners actually succeed, ranked by a 0-100 beginner score.",
   "version": "0.2.0",
   "repository": {
     "url": "https://github.com/Rajveerx11/gfi-scout",
