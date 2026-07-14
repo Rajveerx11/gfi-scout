@@ -15,6 +15,9 @@
 
 </div>
 
+<!-- Official MCP Registry identifier — verifies PyPI package ownership. -->
+mcp-name: io.github.Rajveerx11/gfi-scout
+
 ---
 
 ## Why this exists
