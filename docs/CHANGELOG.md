@@ -37,7 +37,7 @@ and this project adheres to [SemVer](https://semver.org/).
   - `check_issue_status` tool: assignment, linked PRs, staleness,
     competitor PRs, maintainer confirmation → availability verdict.
   - `issue_scorer` + `repo_analyzer` services with tunable weights in
-    `config/scoring_weights.json`.
+    `src/gfi_scout/data/scoring_weights.json` (bundled inside the package).
   - `TTLNamespaceCache` (`cachetools.TTLCache` per namespace).
   - `find_issues` now computes `beginner_score`, `freshness`, and
     `repo_health_grade` per result; respects `sort_by`.

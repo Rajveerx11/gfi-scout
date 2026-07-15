@@ -142,7 +142,6 @@ Pull `CONTRIBUTING.md` (or README setup section) and summarise it.
 
 All tools raise on:
 
-- Missing `GITHUB_TOKEN` (`ConfigError`)
 - Invalid input (`ValidationError`)
 - Any non-2xx GitHub response except probed 404s (`GitHubAPIError`)
 

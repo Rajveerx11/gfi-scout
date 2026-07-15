@@ -1,6 +1,6 @@
 # Agent Connection Guide
 
-Last researched: 2026-05-17.
+Last researched: 2026-07-15.
 
 GFI Scout is an MCP server. AI agents connect to it either by launching it as a local
 stdio process, or by connecting to a local Streamable HTTP/SSE endpoint.
@@ -20,13 +20,13 @@ Copy-Item .env.example .env
 
 On macOS/Linux, use `cp .env.example .env` instead of `Copy-Item`.
 
-For this checkout on Windows, the absolute project path is:
+The examples below use a placeholder Windows project path:
 
 ```text
-C:\GFI MCP
+C:\path\to\gfi-scout
 ```
 
-Replace that path in the examples if you clone the repo somewhere else.
+Replace it with the absolute path to your own checkout.
 
 ## Localhost Server
 
@@ -67,7 +67,7 @@ Most local agents can launch this server directly:
 ```json
 {
   "command": "uv",
-  "args": ["run", "--directory", "C:\\GFI MCP", "gfi-scout"]
+  "args": ["run", "--directory", "C:\\path\\to\\gfi-scout", "gfi-scout"]
 }
 ```
 
@@ -84,7 +84,7 @@ Codex supports MCP in both the CLI and IDE extension, and stores MCP config in
 ```toml
 [mcp_servers.gfi_scout]
 command = "uv"
-args = ["run", "--directory", "C:\\GFI MCP", "gfi-scout"]
+args = ["run", "--directory", "C:\\path\\to\\gfi-scout", "gfi-scout"]
 ```
 
 ### Streamable HTTP
@@ -141,7 +141,7 @@ session to inspect status, or `claude mcp list` from any terminal.
 Run from this project:
 
 ```powershell
-claude mcp add-json gfi-scout '{"type":"stdio","command":"uv","args":["run","--directory","C:\\GFI MCP","gfi-scout"]}' --scope local
+claude mcp add-json gfi-scout '{"type":"stdio","command":"uv","args":["run","--directory","C:\\path\\to\\gfi-scout","gfi-scout"]}' --scope local
 claude mcp list
 ```
 
@@ -159,7 +159,7 @@ Inside Claude Code, run:
     "gfi-scout": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "C:\\GFI MCP", "gfi-scout"]
+      "args": ["run", "--directory", "C:\\path\\to\\gfi-scout", "gfi-scout"]
     }
   }
 }
@@ -182,7 +182,7 @@ Create `.cursor/mcp.json`:
     "gfi-scout": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "C:\\GFI MCP", "gfi-scout"]
+      "args": ["run", "--directory", "C:\\path\\to\\gfi-scout", "gfi-scout"]
     }
   }
 }
@@ -217,7 +217,7 @@ to edit `mcp_config.json`.
   "mcpServers": {
     "gfi-scout": {
       "command": "uv",
-      "args": ["run", "--directory", "C:\\GFI MCP", "gfi-scout"]
+      "args": ["run", "--directory", "C:\\path\\to\\gfi-scout", "gfi-scout"]
     }
   }
 }
@@ -255,7 +255,7 @@ Pi's MCP adapter prefers shared project config in `.mcp.json`; it also reads glo
   "mcpServers": {
     "gfi-scout": {
       "command": "uv",
-      "args": ["run", "--directory", "C:\\GFI MCP", "gfi-scout"],
+      "args": ["run", "--directory", "C:\\path\\to\\gfi-scout", "gfi-scout"],
       "lifecycle": "lazy"
     }
   }
@@ -290,7 +290,7 @@ your active Hermes profile config.
 mcp_servers:
   gfi-scout:
     command: "uv"
-    args: ["run", "--directory", "C:\\GFI MCP", "gfi-scout"]
+    args: ["run", "--directory", "C:\\path\\to\\gfi-scout", "gfi-scout"]
     enabled: true
     timeout: 120
     connect_timeout: 60
