@@ -1,5 +1,6 @@
-# Every change to this repo requires @Rajveerx11's review before merge.
-# Branch protection on `main` enforces this via "Require review from
-# Code Owners".
+# @Rajveerx11 owns every path in this repo (default reviewer, notified on PRs).
+# Note: code-owner review is NOT currently required to merge — branch
+# protection on `main` sets required approving reviews to 0 (solo repo).
+# Re-enable "Require review from Code Owners" if a second maintainer joins.
 
 * @Rajveerx11
