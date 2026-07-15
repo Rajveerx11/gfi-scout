@@ -95,7 +95,7 @@ commits, CONTRIBUTING / CoC / CI probes.
 
 | Failure | Behaviour |
 |---|---|
-| Missing `GITHUB_TOKEN` | `ConfigError` on startup |
+| Missing `GITHUB_TOKEN` | Runs unauthenticated at 60 req/h, logs a warning (not an error) |
 | 4xx / 5xx from GitHub | `GitHubAPIError` propagated to MCP client |
 | 404 on probed content | Treated as "not present", does not crash |
 | `analyse_repo` fails for one repo | That repo's issues default to `health=None`, scoring degrades gracefully |

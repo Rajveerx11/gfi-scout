@@ -54,7 +54,7 @@ The non-negotiable rules from `Plan.md`:
 2. **Every tool returns a Pydantic model** — never a raw dict.
 3. **Error handling at boundaries.** API calls, user input, tool handlers
    must have try/except.
-4. **No hardcoded thresholds** — they live in `config/`.
+4. **No hardcoded thresholds** — they live in `src/gfi_scout/data/`.
 5. **Every API call is logged** with method/url/status/duration.
 6. **Functions do one thing.** If you write "and" in the docstring, split it.
 7. **Comments explain WHY, not WHAT.**
@@ -72,7 +72,7 @@ The non-negotiable rules from `Plan.md`:
 | `src/gfi_scout/utils/` | Pure helpers |
 | `tests/` | Mirrors `src/` exactly |
 | `docs/` | Markdown only |
-| `config/` | Tunable JSON configs |
+| `src/gfi_scout/data/` | Tunable JSON configs (bundled in the package) |
 | `scripts/` | Dev automation |
 
 If your change crosses a layer, open an issue first so we can talk about

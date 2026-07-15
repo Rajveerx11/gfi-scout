@@ -115,10 +115,10 @@ src/gfi_scout/
 ├── models/         # Pydantic
 └── utils/          # Pure helpers (validators, rate limiter, logger)
 
-config/             # scoring_weights.json, default.json — tunable, no code change needed
+src/gfi_scout/data/ # scoring_weights.json, default.json — tunable, bundled in the wheel
 docs/               # All aux markdown lives here (ARCHITECTURE, SCORING_ALGORITHM, CLI, etc.)
 eval/               # Offline evaluation harness (ground_truth.json, evaluate.py)
-scripts/            # seed_cache.py, smoke_test.py, workflow_demo.py
+scripts/            # seed_cache.py, setup.sh
 ```
 
 Deeper detail: `docs/ARCHITECTURE.md`, `docs/SCORING_ALGORITHM.md`, `docs/TOOLS_REFERENCE.md`.

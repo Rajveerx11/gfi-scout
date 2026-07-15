@@ -201,7 +201,7 @@ Full breakdown in [`docs/SCORING_ALGORITHM.md`](docs/SCORING_ALGORITHM.md).
 
 ```bash
 uv sync                              # install everything
-uv run pytest                        # 96 tests in ~2 s
+uv run pytest                        # 106 tests in ~2 s
 uv run ruff check src/ tests/        # lint
 uv run ruff format src/ tests/       # format
 uv run mypy src/                     # strict type-check

@@ -51,7 +51,7 @@ Please include:
 In scope:
 
 - Code in this repository
-- Default configuration shipped under [`config/`](config/)
+- Default configuration shipped under [`src/gfi_scout/data/`](src/gfi_scout/data/)
 - Documented setup paths in [`docs/SETUP.md`](docs/SETUP.md)
 
 Out of scope:
