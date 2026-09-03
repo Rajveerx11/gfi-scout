@@ -112,10 +112,11 @@ declarative sentence. Quoted or context-setting uses and interrogative
 sentences are ignored; a separate later question does not erase an affirmative
 sentence, while a later configured retraction does. Allowed affirmative
 prefixes and retraction phrases are also data-configured. When comments identify
-both users, an explicit `@mention` must match the claimant. A claim without
-matching maintainer confirmation remains `AVAILABLE`. Assignment or linked/open
-competitor PR signals still independently produce `LIKELY_TAKEN`; staleness is
-evaluated afterward.
+both users, an explicit `@mention` affects only the matching claimant; an
+unaddressed stance applies to the most recent claimant. A claim without matching
+maintainer confirmation remains `AVAILABLE`. Assignment or linked/open competitor
+PR signals still independently produce `LIKELY_TAKEN`; staleness is evaluated
+afterward.
 
 ## Repo health grading rules
 

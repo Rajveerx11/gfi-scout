@@ -59,27 +59,27 @@ def _contains_phrase(body: str, phrases: Sequence[str]) -> bool:
     return any(f" {_normalise(phrase)} " in normalised_body for phrase in phrases)
 
 
-def _confirmation_stance(body: str, config: ClaimPhraseConfig) -> bool | None:
+def _confirmation_stances(body: str, config: ClaimPhraseConfig) -> list[tuple[bool, set[str]]]:
     unquoted_lines = [line for line in body.splitlines() if not line.lstrip().startswith(">")]
     unquoted_body = QUOTED_TEXT_RE.sub(" ", "\n".join(unquoted_lines))
-    confirmed: bool | None = None
+    stances: list[tuple[bool, set[str]]] = []
     for sentence_match in SENTENCE_RE.finditer(unquoted_body):
         sentence, punctuation = sentence_match.groups()
         normalised_sentence = _normalise(MENTION_RE.sub(" ", sentence))
         if "?" in punctuation or "？" in punctuation:
             continue
+        mentioned_logins = _mentioned_logins(sentence)
         if _contains_phrase(normalised_sentence, config.retraction_phrases):
-            confirmed = False
+            stances.append((False, mentioned_logins))
             continue
-        for phrase in config.maintainer_confirmation_phrases:
-            normalised_phrase = _normalise(phrase)
-            for prefix in config.confirmation_prefixes:
-                candidate = " ".join(
-                    part for part in (_normalise(prefix), normalised_phrase) if part
-                )
-                if normalised_sentence == candidate:
-                    confirmed = True
-    return confirmed
+        candidates = (
+            " ".join(part for part in (_normalise(prefix), _normalise(phrase)) if part)
+            for phrase in config.maintainer_confirmation_phrases
+            for prefix in config.confirmation_prefixes
+        )
+        if any(normalised_sentence == candidate for candidate in candidates):
+            stances.append((True, mentioned_logins))
+    return stances
 
 
 def _claimant_login(comment: Mapping[str, object]) -> str | None:
@@ -90,9 +90,8 @@ def _claimant_login(comment: Mapping[str, object]) -> str | None:
     return login.casefold() if isinstance(login, str) and login else None
 
 
-def _confirmation_matches_claimant(body: str, claimant_logins: set[str]) -> bool:
-    mentioned_logins = {match.casefold() for match in MENTION_RE.findall(body)}
-    return not mentioned_logins or not claimant_logins or bool(mentioned_logins & claimant_logins)
+def _mentioned_logins(body: str) -> set[str]:
+    return {match.casefold() for match in MENTION_RE.findall(body)}
 
 
 def detect_claim(
@@ -102,8 +101,10 @@ def detect_claim(
 ) -> ClaimDetection:
     """Detect claim and explicit maintainer-confirmation phrases."""
     claim_detected = False
-    maintainer_confirmed = False
-    claimant_logins: set[str] = set()
+    anonymous_claim_detected = False
+    anonymous_claim_confirmed = False
+    claimant_confirmations: dict[str, bool] = {}
+    latest_claimant_login: str | None = None
 
     for comment in comments:
         body = comment.get("body")
@@ -111,22 +112,30 @@ def detect_claim(
         if not isinstance(body, str) or not isinstance(association, str):
             continue
         if association in config.maintainer_associations:
-            stance = _confirmation_stance(body, config)
-            if (
-                claim_detected
-                and stance is not None
-                and _confirmation_matches_claimant(body, claimant_logins)
-            ):
-                maintainer_confirmed = stance
+            if not claim_detected:
+                continue
+            for stance, mentioned_logins in _confirmation_stances(body, config):
+                if mentioned_logins:
+                    matching_logins = mentioned_logins & claimant_confirmations.keys()
+                    for login in matching_logins:
+                        claimant_confirmations[login] = stance
+                elif latest_claimant_login is None:
+                    if anonymous_claim_detected:
+                        anonymous_claim_confirmed = stance
+                else:
+                    claimant_confirmations[latest_claimant_login] = stance
             continue
 
         if _contains_phrase(body, config.claim_phrases):
             claim_detected = True
             claimant_login = _claimant_login(comment)
-            if claimant_login is not None:
-                claimant_logins.add(claimant_login)
+            if claimant_login is None:
+                anonymous_claim_detected = True
+            else:
+                claimant_confirmations.setdefault(claimant_login, False)
+            latest_claimant_login = claimant_login
 
     return ClaimDetection(
         claim_detected=claim_detected,
-        maintainer_confirmed=maintainer_confirmed,
+        maintainer_confirmed=(anonymous_claim_confirmed or any(claimant_confirmations.values())),
     )

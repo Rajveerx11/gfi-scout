@@ -158,5 +158,172 @@
       "updated_at": "2026-08-01T11:00:00Z",
       "author_association": "MEMBER"
     }
+  ],
+  "cross_claimant_retraction": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "oscar"}
+    },
+    {
+      "body": "Assign me, please.",
+      "updated_at": "2026-08-01T10:15:00Z",
+      "author_association": "NONE",
+      "user": {"login": "pia"}
+    },
+    {
+      "body": "@oscar, it's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "@pia, not yet.",
+      "updated_at": "2026-08-01T12:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "confirmed_claimant_retracted": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "quinn"}
+    },
+    {
+      "body": "Assign me, please.",
+      "updated_at": "2026-08-01T10:15:00Z",
+      "author_association": "NONE",
+      "user": {"login": "ravi"}
+    },
+    {
+      "body": "@quinn, it's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "@quinn, not yet.",
+      "updated_at": "2026-08-01T12:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "unmentioned_stance_targets_latest_claimant": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "sasha"}
+    },
+    {
+      "body": "Assign me, please.",
+      "updated_at": "2026-08-01T10:15:00Z",
+      "author_association": "NONE",
+      "user": {"login": "tariq"}
+    },
+    {
+      "body": "It's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "@tariq, not yet.",
+      "updated_at": "2026-08-01T12:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "mixed_directed_stances": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "uma"}
+    },
+    {
+      "body": "Assign me, please.",
+      "updated_at": "2026-08-01T10:15:00Z",
+      "author_association": "NONE",
+      "user": {"login": "victor"}
+    },
+    {
+      "body": "@uma, it's yours. @victor, not yet.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "quoted_mention_does_not_redirect_stance": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "wendy"}
+    },
+    {
+      "body": "Assign me, please.",
+      "updated_at": "2026-08-01T10:15:00Z",
+      "author_association": "NONE",
+      "user": {"login": "xavier"}
+    },
+    {
+      "body": "`@wendy` It's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "@xavier, not yet.",
+      "updated_at": "2026-08-01T12:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "anonymous_claim_confirmed": [
+    {
+      "body": "Can I work on this?",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE"
+    },
+    {
+      "body": "It's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "anonymous_claim_retracted": [
+    {
+      "body": "Can I work on this?",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE"
+    },
+    {
+      "body": "It's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "Not yet.",
+      "updated_at": "2026-08-01T12:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "named_then_anonymous_claim": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "yara"}
+    },
+    {
+      "body": "Can I work on this?",
+      "updated_at": "2026-08-01T10:15:00Z",
+      "author_association": "NONE"
+    },
+    {
+      "body": "It's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "@yara, not yet.",
+      "updated_at": "2026-08-01T12:00:00Z",
+      "author_association": "OWNER"
+    }
   ]
 }

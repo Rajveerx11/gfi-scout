@@ -210,6 +210,14 @@ async def test_maintainer_comment_without_confirmation_stays_available(
         ("confirmation_then_retraction", True, False, "AVAILABLE"),
         ("confirmation_then_later_retraction", True, False, "AVAILABLE"),
         ("confirmation_then_retraction_question", True, True, "LIKELY_TAKEN"),
+        ("cross_claimant_retraction", True, True, "LIKELY_TAKEN"),
+        ("confirmed_claimant_retracted", True, False, "AVAILABLE"),
+        ("unmentioned_stance_targets_latest_claimant", True, False, "AVAILABLE"),
+        ("mixed_directed_stances", True, True, "LIKELY_TAKEN"),
+        ("quoted_mention_does_not_redirect_stance", True, False, "AVAILABLE"),
+        ("anonymous_claim_confirmed", True, True, "LIKELY_TAKEN"),
+        ("anonymous_claim_retracted", True, False, "AVAILABLE"),
+        ("named_then_anonymous_claim", True, True, "LIKELY_TAKEN"),
     ],
 )
 async def test_claim_detection_from_fixture_comments(
