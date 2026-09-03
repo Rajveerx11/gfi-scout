@@ -15,6 +15,7 @@ from gfi_scout.models.claim import ClaimDetection, ClaimPhraseConfig
 
 MENTION_RE = re.compile(r"(?<![\w-])@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\b")
 QUOTED_TEXT_RE = re.compile(r'```.*?```|`[^`]*`|"[^"]*"|“[^”]*”', re.DOTALL)
+SENTENCE_RE = re.compile(r"([^.!?！？]+)([.!?！？]+|$)")
 
 
 def _default_path() -> Path:
@@ -61,16 +62,19 @@ def _contains_phrase(body: str, phrases: Sequence[str]) -> bool:
 def _contains_confirmation(body: str, config: ClaimPhraseConfig) -> bool:
     unquoted_lines = [line for line in body.splitlines() if not line.lstrip().startswith(">")]
     unquoted_body = QUOTED_TEXT_RE.sub(" ", "\n".join(unquoted_lines))
-    if "?" in unquoted_body or "？" in unquoted_body:
-        return False
-    normalised_body = _normalise(MENTION_RE.sub(" ", unquoted_body))
-
-    for phrase in config.maintainer_confirmation_phrases:
-        normalised_phrase = _normalise(phrase)
-        for prefix in config.confirmation_prefixes:
-            candidate = " ".join(part for part in (_normalise(prefix), normalised_phrase) if part)
-            if normalised_body == candidate:
-                return True
+    for sentence_match in SENTENCE_RE.finditer(unquoted_body):
+        sentence, punctuation = sentence_match.groups()
+        if "?" in punctuation or "？" in punctuation:
+            continue
+        normalised_sentence = _normalise(MENTION_RE.sub(" ", sentence))
+        for phrase in config.maintainer_confirmation_phrases:
+            normalised_phrase = _normalise(phrase)
+            for prefix in config.confirmation_prefixes:
+                candidate = " ".join(
+                    part for part in (_normalise(prefix), normalised_phrase) if part
+                )
+                if normalised_sentence == candidate:
+                    return True
     return False
 
 

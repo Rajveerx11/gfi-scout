@@ -475,19 +475,30 @@ class GitHubClient:
         last_page = max(1, (total_comments - 1) // limit + 1)
         page = last_page - 1 if last_page > 1 and total_comments % limit else last_page
         comments: list[dict[str, Any]] = []
+        fetched_pages: dict[int, list[dict[str, Any]]] = {}
+
+        async def fetch_page(page_number: int) -> list[dict[str, Any]]:
+            if page_number not in fetched_pages:
+                fetched_pages[page_number] = await self.list_issue_comments(
+                    repo_full_name,
+                    number,
+                    per_page=limit,
+                    page=page_number,
+                    refresh=True,
+                )
+            return fetched_pages[page_number]
+
+        batch = await fetch_page(page)
+        while not batch and page > 1:
+            page -= 1
+            batch = await fetch_page(page)
 
         while True:
-            batch = await self.list_issue_comments(
-                repo_full_name,
-                number,
-                per_page=limit,
-                page=page,
-                refresh=True,
-            )
             comments.extend(batch)
             if len(batch) < limit:
                 break
             page += 1
+            batch = await fetch_page(page)
 
         return comments[-limit:]
 

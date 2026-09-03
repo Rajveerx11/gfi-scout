@@ -101,5 +101,18 @@
       "updated_at": "2026-08-01T11:00:00Z",
       "author_association": "OWNER"
     }
+  ],
+  "confirmation_then_separate_question": [
+    {
+      "body": "Can I work on this?",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "kate"}
+    },
+    {
+      "body": "@kate, it's yours. Need help getting started?",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "MEMBER"
+    }
   ]
 }
