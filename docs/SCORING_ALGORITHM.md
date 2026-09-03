@@ -98,6 +98,20 @@ The composite score is bucketed using `grade_cutoffs`:
 The grade is surfaced as `health_grade` on `RepoHealth` and as
 `repo_health_grade` on every `find_issues` result.
 
+## Issue availability verdict
+
+`check_issue_status` scans fetched issue comments for contributor claim
+phrases and explicit maintainer confirmation. Claim phrases, confirmation
+phrases, and trusted GitHub author associations are configured in
+[`src/gfi_scout/data/claim_phrases.json`](../src/gfi_scout/data/claim_phrases.json).
+
+An otherwise available issue becomes `LIKELY_TAKEN` only when both signals are
+present: a non-maintainer comment contains a claim phrase and an owner, member,
+or collaborator comment contains a confirmation phrase. A claim without
+maintainer confirmation remains `AVAILABLE`. Assignment or linked/open
+competitor PR signals still independently produce `LIKELY_TAKEN`; staleness is
+evaluated afterward.
+
 ## Repo health grading rules
 
 The repo grader is intentionally separate from the issue scorer, because a

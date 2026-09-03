@@ -106,7 +106,8 @@ Before you start working — is the issue actually available?
 | `last_activity` | Most recent comment / update |
 | `is_stale` | No activity for `stale_issue_days` (default 60) |
 | `competitor_prs` | Count of open PRs referencing this issue |
-| `maintainer_confirmed` | A maintainer/owner has commented |
+| `claim_detected` | A non-maintainer comment contains a configured claim phrase |
+| `maintainer_confirmed` | A maintainer comment contains a configured confirmation phrase |
 | `availability_verdict` | `"AVAILABLE"` / `"LIKELY_TAKEN"` / `"STALE"` |
 | `notes` | Human-readable caveats |
 

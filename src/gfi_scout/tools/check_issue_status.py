@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from gfi_scout.models.issue import IssueStatus
+from gfi_scout.services.claim_detector import detect_claim, get_claim_phrase_config
 from gfi_scout.services.github_api import GitHubClient
 from gfi_scout.services.scoring_config import ScoringConfig
 from gfi_scout.utils.logger import get_logger
@@ -14,7 +15,6 @@ from gfi_scout.utils.validators import parse_issue_url
 
 log = get_logger(__name__)
 
-MAINTAINER_ASSOC = {"OWNER", "MEMBER", "COLLABORATOR"}
 LINKED_PR_RE = re.compile(
     r"\b(closes|fixes|resolves)\s+#(\d+)\b",
     re.IGNORECASE,
@@ -38,8 +38,15 @@ def _verdict(
     has_linked_pr: bool,
     is_stale: bool,
     competitor_prs: int,
+    claim_detected: bool,
+    maintainer_confirmed: bool,
 ) -> str:
-    if is_assigned or has_linked_pr or competitor_prs > 0:
+    if (
+        is_assigned
+        or has_linked_pr
+        or competitor_prs > 0
+        or (claim_detected and maintainer_confirmed)
+    ):
         return "LIKELY_TAKEN"
     if is_stale:
         return "STALE"
@@ -57,7 +64,15 @@ async def check_issue_status(
     log.info("check_issue_status repo=%s number=%s", repo, number)
 
     issue = await client.get_issue(repo, number)
-    comments = await client.list_issue_comments(repo, number)
+    claim_config = get_claim_phrase_config()
+    comment_count = issue.comments or 0
+    comment_page = max(1, (comment_count - 1) // claim_config.recent_comment_limit + 1)
+    comments = await client.list_issue_comments(
+        repo,
+        number,
+        per_page=claim_config.recent_comment_limit,
+        page=comment_page,
+    )
     timeline = await client.list_issue_timeline(repo, number)
 
     is_assigned = issue.assignee is not None or len(issue.assignees) > 0
@@ -96,12 +111,7 @@ async def check_issue_status(
         age_days = (datetime.now(UTC) - last_activity).days
         is_stale = age_days >= cfg.stale_issue_days
 
-    maintainer_confirmed = False
-    for comment in comments:
-        assoc = comment.get("author_association") if isinstance(comment, dict) else None
-        if isinstance(assoc, str) and assoc in MAINTAINER_ASSOC:
-            maintainer_confirmed = True
-            break
+    claim = detect_claim(comments, config=claim_config)
 
     notes: list[str] = []
     if not comments:
@@ -116,12 +126,15 @@ async def check_issue_status(
         last_activity=last_activity,
         is_stale=is_stale,
         competitor_prs=competitor_prs,
-        maintainer_confirmed=maintainer_confirmed,
+        claim_detected=claim.claim_detected,
+        maintainer_confirmed=claim.maintainer_confirmed,
         availability_verdict=_verdict(
             is_assigned=is_assigned,
             has_linked_pr=has_linked_pr,
             is_stale=is_stale,
             competitor_prs=competitor_prs,
+            claim_detected=claim.claim_detected,
+            maintainer_confirmed=claim.maintainer_confirmed,
         ),
         notes=notes,
     )

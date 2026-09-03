@@ -1,0 +1,38 @@
+{
+  "confirmed_claim": [
+    {
+      "body": "Can I work on this issue?",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "CONTRIBUTOR"
+    },
+    {
+      "body": "Yes, it's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "claim_without_confirmation": [
+    {
+      "body": "I'll take this one.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE"
+    },
+    {
+      "body": "Could you share your proposed approach?",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "MEMBER"
+    }
+  ],
+  "confirmation_without_claim": [
+    {
+      "body": "I found the relevant module.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE"
+    },
+    {
+      "body": "It's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "COLLABORATOR"
+    }
+  ]
+}

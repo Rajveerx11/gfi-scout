@@ -51,6 +51,7 @@ async def test_available_when_unassigned_fresh_no_links(
     assert status.is_assigned is False
     assert status.has_linked_pr is False
     assert status.competitor_prs == 0
+    assert status.claim_detected is False
 
 
 @pytest.mark.asyncio
@@ -149,7 +150,7 @@ async def test_stale_when_no_recent_activity(
 
 
 @pytest.mark.asyncio
-async def test_maintainer_confirmed_when_owner_comments(
+async def test_maintainer_comment_without_confirmation_stays_available(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,
 ) -> None:
@@ -188,5 +189,60 @@ async def test_maintainer_confirmed_when_owner_comments(
     )
     cfg = get_scoring_config()
     status = await check_issue_status(github_client, url, cfg=cfg)
-    assert status.maintainer_confirmed is True
+    assert status.claim_detected is False
+    assert status.maintainer_confirmed is False
     assert status.availability_verdict == "AVAILABLE"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("fixture_key", "claim_detected", "maintainer_confirmed", "verdict"),
+    [
+        ("confirmed_claim", True, True, "LIKELY_TAKEN"),
+        ("claim_without_confirmation", True, False, "AVAILABLE"),
+        ("confirmation_without_claim", False, True, "AVAILABLE"),
+    ],
+)
+async def test_claim_detection_from_fixture_comments(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+    issue_comments: dict[str, list[dict[str, object]]],
+    fixture_key: str,
+    claim_detected: bool,
+    maintainer_confirmed: bool,
+    verdict: str,
+) -> None:
+    repo = "acme/widgets"
+    url = "https://github.com/acme/widgets/issues/11"
+    respx_mock.get(f"/repos/{repo}/issues/11").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "title": "x",
+                "html_url": url,
+                "body": "describe",
+                "repository_url": f"https://api.github.com/repos/{repo}",
+                "labels": [],
+                "assignee": None,
+                "assignees": [],
+                "created_at": _iso(2),
+                "updated_at": _iso(1),
+                "comments": 61,
+            },
+        )
+    )
+    comments_route = respx_mock.get(f"/repos/{repo}/issues/11/comments").mock(
+        return_value=httpx.Response(200, json=issue_comments[fixture_key])
+    )
+    respx_mock.get(f"/repos/{repo}/issues/11/timeline").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+
+    status = await check_issue_status(github_client, url, cfg=get_scoring_config())
+
+    assert status.claim_detected is claim_detected
+    assert status.maintainer_confirmed is maintainer_confirmed
+    assert status.availability_verdict == verdict
+    request = comments_route.calls.last.request
+    assert request.url.params.get("per_page") == "30"
+    assert request.url.params.get("page") == "3"

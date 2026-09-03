@@ -8,6 +8,9 @@ and this project adheres to [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `check_issue_status` now detects contributor claims plus explicit maintainer
+  confirmation from recent comments and surfaces `claim_detected`; confirmed
+  claims produce a `LIKELY_TAKEN` verdict.
 - **`--version` flag**: `gfi-scout --version` and `gfi-scout-cli --version`
   print the installed package version and exit.
 - **Tokenless mode**: `GITHUB_TOKEN` is now optional. Without a token the
