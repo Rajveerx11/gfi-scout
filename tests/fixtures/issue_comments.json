@@ -3,10 +3,11 @@
     {
       "body": "Can I work on this issue?",
       "updated_at": "2026-08-01T10:00:00Z",
-      "author_association": "CONTRIBUTOR"
+      "author_association": "CONTRIBUTOR",
+      "user": {"login": "alice"}
     },
     {
-      "body": "Yes, it's yours.",
+      "body": "Yes @alice, it's yours.",
       "updated_at": "2026-08-01T11:00:00Z",
       "author_association": "OWNER"
     }
@@ -15,7 +16,8 @@
     {
       "body": "I'll take this one.",
       "updated_at": "2026-08-01T10:00:00Z",
-      "author_association": "NONE"
+      "author_association": "NONE",
+      "user": {"login": "bob"}
     },
     {
       "body": "Could you share your proposed approach?",
@@ -33,6 +35,32 @@
       "body": "It's yours.",
       "updated_at": "2026-08-01T11:00:00Z",
       "author_association": "COLLABORATOR"
+    }
+  ],
+  "old_confirmation_then_claim": [
+    {
+      "body": "@dana, it's yours.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "I'll work on this.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "erin"}
+    }
+  ],
+  "confirmation_for_different_claimant": [
+    {
+      "body": "Assign me, please.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "frank"}
+    },
+    {
+      "body": "@grace, it's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "MEMBER"
     }
   ]
 }

@@ -8,6 +8,7 @@ namespace-scoped TTL caching.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import time
 from datetime import UTC, datetime
@@ -459,6 +460,35 @@ class GitHubClient:
         result = list(data) if isinstance(data, list) else []
         self._cache_set(NS_ISSUE_COMMENTS, *cache_key, value=result)
         return result
+
+    async def list_recent_issue_comments(
+        self,
+        repo_full_name: str,
+        number: int,
+        *,
+        total_comments: int,
+        limit: int = 30,
+    ) -> list[dict[str, Any]]:
+        """Return the latest issue comments in ascending conversation order."""
+        limit = min(MAX_PER_PAGE, max(1, limit))
+        last_page = max(1, (total_comments - 1) // limit + 1)
+        pages = [last_page]
+        if last_page > 1 and total_comments % limit:
+            pages.insert(0, last_page - 1)
+
+        batches = await asyncio.gather(
+            *(
+                self.list_issue_comments(
+                    repo_full_name,
+                    number,
+                    per_page=limit,
+                    page=page,
+                )
+                for page in pages
+            )
+        )
+        comments = [comment for batch in batches for comment in batch]
+        return comments[-limit:]
 
     async def list_issue_timeline(
         self,

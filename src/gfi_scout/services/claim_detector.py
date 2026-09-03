@@ -13,6 +13,8 @@ from pydantic import ValidationError
 
 from gfi_scout.models.claim import ClaimDetection, ClaimPhraseConfig
 
+MENTION_RE = re.compile(r"(?<![\w-])@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\b")
+
 
 def _default_path() -> Path:
     """Resolve bundled claim phrases from the installed package."""
@@ -55,6 +57,19 @@ def _contains_phrase(body: str, phrases: Sequence[str]) -> bool:
     return any(f" {_normalise(phrase)} " in normalised_body for phrase in phrases)
 
 
+def _claimant_login(comment: Mapping[str, object]) -> str | None:
+    user = comment.get("user")
+    if not isinstance(user, Mapping):
+        return None
+    login = user.get("login")
+    return login.casefold() if isinstance(login, str) and login else None
+
+
+def _confirmation_matches_claimant(body: str, claimant_logins: set[str]) -> bool:
+    mentioned_logins = {match.casefold() for match in MENTION_RE.findall(body)}
+    return not mentioned_logins or not claimant_logins or bool(mentioned_logins & claimant_logins)
+
+
 def detect_claim(
     comments: Sequence[Mapping[str, object]],
     *,
@@ -63,6 +78,7 @@ def detect_claim(
     """Detect claim and explicit maintainer-confirmation phrases."""
     claim_detected = False
     maintainer_confirmed = False
+    claimant_logins: set[str] = set()
 
     for comment in comments:
         body = comment.get("body")
@@ -70,15 +86,19 @@ def detect_claim(
         if not isinstance(body, str) or not isinstance(association, str):
             continue
         if association in config.maintainer_associations:
-            maintainer_confirmed = maintainer_confirmed or _contains_phrase(
-                body,
-                config.maintainer_confirmation_phrases,
-            )
-        else:
-            claim_detected = claim_detected or _contains_phrase(
-                body,
-                config.claim_phrases,
-            )
+            if (
+                claim_detected
+                and _contains_phrase(body, config.maintainer_confirmation_phrases)
+                and _confirmation_matches_claimant(body, claimant_logins)
+            ):
+                maintainer_confirmed = True
+            continue
+
+        if _contains_phrase(body, config.claim_phrases):
+            claim_detected = True
+            claimant_login = _claimant_login(comment)
+            if claimant_login is not None:
+                claimant_logins.add(claimant_login)
 
     return ClaimDetection(
         claim_detected=claim_detected,

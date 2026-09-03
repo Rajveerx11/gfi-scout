@@ -200,7 +200,9 @@ async def test_maintainer_comment_without_confirmation_stays_available(
     [
         ("confirmed_claim", True, True, "LIKELY_TAKEN"),
         ("claim_without_confirmation", True, False, "AVAILABLE"),
-        ("confirmation_without_claim", False, True, "AVAILABLE"),
+        ("confirmation_without_claim", False, False, "AVAILABLE"),
+        ("old_confirmation_then_claim", True, False, "AVAILABLE"),
+        ("confirmation_for_different_claimant", True, False, "AVAILABLE"),
     ],
 )
 async def test_claim_detection_from_fixture_comments(
@@ -227,11 +229,11 @@ async def test_claim_detection_from_fixture_comments(
                 "assignees": [],
                 "created_at": _iso(2),
                 "updated_at": _iso(1),
-                "comments": 61,
+                "comments": 2,
             },
         )
     )
-    comments_route = respx_mock.get(f"/repos/{repo}/issues/11/comments").mock(
+    respx_mock.get(f"/repos/{repo}/issues/11/comments").mock(
         return_value=httpx.Response(200, json=issue_comments[fixture_key])
     )
     respx_mock.get(f"/repos/{repo}/issues/11/timeline").mock(
@@ -243,6 +245,3 @@ async def test_claim_detection_from_fixture_comments(
     assert status.claim_detected is claim_detected
     assert status.maintainer_confirmed is maintainer_confirmed
     assert status.availability_verdict == verdict
-    request = comments_route.calls.last.request
-    assert request.url.params.get("per_page") == "30"
-    assert request.url.params.get("page") == "3"

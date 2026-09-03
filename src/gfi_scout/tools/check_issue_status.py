@@ -65,13 +65,11 @@ async def check_issue_status(
 
     issue = await client.get_issue(repo, number)
     claim_config = get_claim_phrase_config()
-    comment_count = issue.comments or 0
-    comment_page = max(1, (comment_count - 1) // claim_config.recent_comment_limit + 1)
-    comments = await client.list_issue_comments(
+    comments = await client.list_recent_issue_comments(
         repo,
         number,
-        per_page=claim_config.recent_comment_limit,
-        page=comment_page,
+        total_comments=issue.comments or 0,
+        limit=claim_config.recent_comment_limit,
     )
     timeline = await client.list_issue_timeline(repo, number)
 

@@ -217,6 +217,32 @@ def test_base_url_default() -> None:
 
 
 @pytest.mark.asyncio
+async def test_recent_issue_comments_combine_partial_final_page(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    page_two = [{"id": comment_id} for comment_id in range(31, 61)]
+    page_three = [{"id": 61}]
+    route = respx_mock.get("/repos/acme/widgets/issues/7/comments").mock(
+        side_effect=[
+            httpx.Response(200, json=page_two),
+            httpx.Response(200, json=page_three),
+        ]
+    )
+
+    comments = await github_client.list_recent_issue_comments(
+        "acme/widgets",
+        7,
+        total_comments=61,
+        limit=30,
+    )
+
+    assert [comment["id"] for comment in comments] == list(range(32, 62))
+    assert [call.request.url.params.get("page") for call in route.calls] == ["2", "3"]
+    assert all(call.request.url.params.get("per_page") == "30" for call in route.calls)
+
+
+@pytest.mark.asyncio
 async def test_401_returns_helpful_token_message(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,
