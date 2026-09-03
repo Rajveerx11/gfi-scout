@@ -2,6 +2,7 @@
   "claim_phrases": ["i'll take", "i'll work on this", "working on this", "can i work on", "assign me"],
   "maintainer_confirmation_phrases": ["it's yours", "it is yours", "you can take this", "assigned to you"],
   "confirmation_prefixes": ["", "yes", "sure", "okay", "ok"],
+  "retraction_phrases": ["not yet", "never mind", "nevermind", "do not start", "don't start", "not yours"],
   "maintainer_associations": ["OWNER", "MEMBER", "COLLABORATOR"],
   "recent_comment_limit": 30
 }

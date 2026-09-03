@@ -13,6 +13,7 @@ class ClaimPhraseConfig(BaseModel):
     claim_phrases: tuple[str, ...] = Field(min_length=1)
     maintainer_confirmation_phrases: tuple[str, ...] = Field(min_length=1)
     confirmation_prefixes: tuple[str, ...] = Field(min_length=1)
+    retraction_phrases: tuple[str, ...] = Field(min_length=1)
     maintainer_associations: frozenset[str] = Field(min_length=1)
     recent_comment_limit: int = Field(gt=0, le=100)
 

@@ -493,12 +493,17 @@ class GitHubClient:
             page -= 1
             batch = await fetch_page(page)
 
+        first_page = page
         while True:
             comments.extend(batch)
             if len(batch) < limit:
                 break
             page += 1
             batch = await fetch_page(page)
+
+        while len(comments) < limit and first_page > 1:
+            first_page -= 1
+            comments = [*(await fetch_page(first_page)), *comments]
 
         return comments[-limit:]
 

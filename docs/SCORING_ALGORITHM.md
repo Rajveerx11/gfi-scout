@@ -110,11 +110,12 @@ present: a non-maintainer comment contains a claim phrase and an owner, member,
 or collaborator later uses a standalone affirmative confirmation phrase in a
 declarative sentence. Quoted or context-setting uses and interrogative
 sentences are ignored; a separate later question does not erase an affirmative
-sentence. Allowed affirmative prefixes are also data-configured. When comments
-identify both users, an explicit `@mention` must match the claimant. A claim
-without matching maintainer confirmation remains `AVAILABLE`. Assignment or
-linked/open competitor PR signals still independently produce `LIKELY_TAKEN`;
-staleness is evaluated afterward.
+sentence, while a later configured retraction does. Allowed affirmative
+prefixes and retraction phrases are also data-configured. When comments identify
+both users, an explicit `@mention` must match the claimant. A claim without
+matching maintainer confirmation remains `AVAILABLE`. Assignment or linked/open
+competitor PR signals still independently produce `LIKELY_TAKEN`; staleness is
+evaluated afterward.
 
 ## Repo health grading rules
 

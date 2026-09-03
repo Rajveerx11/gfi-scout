@@ -320,6 +320,32 @@ async def test_recent_issue_comments_backtrack_from_overestimated_page(
 
 
 @pytest.mark.asyncio
+async def test_recent_issue_comments_fill_window_after_partial_backtrack(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    page_one = [{"id": comment_id} for comment_id in range(1, 31)]
+    page_two = [{"id": comment_id} for comment_id in range(31, 51)]
+    route = respx_mock.get("/repos/acme/widgets/issues/12/comments").mock(
+        side_effect=[
+            httpx.Response(200, json=[]),
+            httpx.Response(200, json=page_two),
+            httpx.Response(200, json=page_one),
+        ]
+    )
+
+    comments = await github_client.list_recent_issue_comments(
+        "acme/widgets",
+        12,
+        total_comments=90,
+        limit=30,
+    )
+
+    assert [comment["id"] for comment in comments] == list(range(21, 51))
+    assert [call.request.url.params.get("page") for call in route.calls] == ["3", "2", "1"]
+
+
+@pytest.mark.asyncio
 async def test_401_returns_helpful_token_message(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,

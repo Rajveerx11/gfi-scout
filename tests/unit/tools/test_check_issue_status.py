@@ -207,6 +207,8 @@ async def test_maintainer_comment_without_confirmation_stays_available(
         ("quoted_confirmation", True, False, "AVAILABLE"),
         ("question_confirmation", True, False, "AVAILABLE"),
         ("confirmation_then_separate_question", True, True, "LIKELY_TAKEN"),
+        ("confirmation_then_retraction", True, False, "AVAILABLE"),
+        ("confirmation_then_later_retraction", True, False, "AVAILABLE"),
     ],
 )
 async def test_claim_detection_from_fixture_comments(

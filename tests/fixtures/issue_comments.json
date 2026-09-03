@@ -114,5 +114,36 @@
       "updated_at": "2026-08-01T11:00:00Z",
       "author_association": "MEMBER"
     }
+  ],
+  "confirmation_then_retraction": [
+    {
+      "body": "Assign me, please.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "leo"}
+    },
+    {
+      "body": "@leo, it's yours. No, not yet.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "confirmation_then_later_retraction": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "maya"}
+    },
+    {
+      "body": "@maya, it's yours.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    },
+    {
+      "body": "@maya, not yet.",
+      "updated_at": "2026-08-01T12:00:00Z",
+      "author_association": "OWNER"
+    }
   ]
 }

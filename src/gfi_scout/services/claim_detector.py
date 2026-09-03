@@ -59,14 +59,18 @@ def _contains_phrase(body: str, phrases: Sequence[str]) -> bool:
     return any(f" {_normalise(phrase)} " in normalised_body for phrase in phrases)
 
 
-def _contains_confirmation(body: str, config: ClaimPhraseConfig) -> bool:
+def _confirmation_stance(body: str, config: ClaimPhraseConfig) -> bool | None:
     unquoted_lines = [line for line in body.splitlines() if not line.lstrip().startswith(">")]
     unquoted_body = QUOTED_TEXT_RE.sub(" ", "\n".join(unquoted_lines))
+    confirmed: bool | None = None
     for sentence_match in SENTENCE_RE.finditer(unquoted_body):
         sentence, punctuation = sentence_match.groups()
+        normalised_sentence = _normalise(MENTION_RE.sub(" ", sentence))
+        if _contains_phrase(normalised_sentence, config.retraction_phrases):
+            confirmed = False
+            continue
         if "?" in punctuation or "？" in punctuation:
             continue
-        normalised_sentence = _normalise(MENTION_RE.sub(" ", sentence))
         for phrase in config.maintainer_confirmation_phrases:
             normalised_phrase = _normalise(phrase)
             for prefix in config.confirmation_prefixes:
@@ -74,8 +78,8 @@ def _contains_confirmation(body: str, config: ClaimPhraseConfig) -> bool:
                     part for part in (_normalise(prefix), normalised_phrase) if part
                 )
                 if normalised_sentence == candidate:
-                    return True
-    return False
+                    confirmed = True
+    return confirmed
 
 
 def _claimant_login(comment: Mapping[str, object]) -> str | None:
@@ -107,12 +111,13 @@ def detect_claim(
         if not isinstance(body, str) or not isinstance(association, str):
             continue
         if association in config.maintainer_associations:
+            stance = _confirmation_stance(body, config)
             if (
                 claim_detected
-                and _contains_confirmation(body, config)
+                and stance is not None
                 and _confirmation_matches_claimant(body, claimant_logins)
             ):
-                maintainer_confirmed = True
+                maintainer_confirmed = stance
             continue
 
         if _contains_phrase(body, config.claim_phrases):
