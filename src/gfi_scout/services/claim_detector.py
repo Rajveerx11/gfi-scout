@@ -66,10 +66,10 @@ def _confirmation_stance(body: str, config: ClaimPhraseConfig) -> bool | None:
     for sentence_match in SENTENCE_RE.finditer(unquoted_body):
         sentence, punctuation = sentence_match.groups()
         normalised_sentence = _normalise(MENTION_RE.sub(" ", sentence))
+        if "?" in punctuation or "？" in punctuation:
+            continue
         if _contains_phrase(normalised_sentence, config.retraction_phrases):
             confirmed = False
-            continue
-        if "?" in punctuation or "？" in punctuation:
             continue
         for phrase in config.maintainer_confirmation_phrases:
             normalised_phrase = _normalise(phrase)
