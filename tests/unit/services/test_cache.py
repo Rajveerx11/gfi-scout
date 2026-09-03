@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sqlite3
+import stat
 import time
 from pathlib import Path
 
@@ -202,3 +204,41 @@ async def test_cancelled_ready_waiter_does_not_poison_shared_cache(tmp_path: Pat
         assert restarted.get("ns", "key") == "persisted"
     finally:
         locker.close()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX mode bits only")
+async def test_sqlite_cache_restricts_existing_path_to_owner(tmp_path: Path) -> None:
+    cache_directory = tmp_path / "cache"
+    cache_directory.mkdir(mode=0o755)
+    database = cache_directory / "cache.db"
+    database.touch(mode=0o644)
+    cache_directory.chmod(0o755)
+    database.chmod(0o644)
+
+    cache = SQLiteCache(database)
+    await cache.wait_ready()
+
+    assert stat.S_IMODE(cache_directory.stat().st_mode) == 0o700
+    assert stat.S_IMODE(database.stat().st_mode) == 0o600
+
+
+async def test_sqlite_cache_persists_lru_hit_recency(tmp_path: Path) -> None:
+    database = tmp_path / "cache.db"
+    cache = SQLiteCache(database)
+    cache.configure_namespace("ns", ttl_seconds=60, maxsize=2)
+    cache.set("ns", "hot", value="hot")
+    cache.set("ns", "cold", value="cold")
+    cache.flush()
+
+    assert cache.get("ns", "hot") == "hot"
+    cache.flush()
+    cache.set("ns", "new", value="new")
+    cache.flush()
+
+    restarted = SQLiteCache(database)
+    restarted.configure_namespace("ns", ttl_seconds=60, maxsize=2)
+    await restarted.wait_ready()
+
+    assert restarted.get("ns", "hot") == "hot"
+    assert restarted.get("ns", "cold") is None
+    assert restarted.get("ns", "new") == "new"

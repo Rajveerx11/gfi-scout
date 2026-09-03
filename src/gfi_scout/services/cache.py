@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sqlite3
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -184,8 +185,9 @@ class SQLiteCache:
 
     def _initialize(self) -> None:
         try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
+            self._secure_cache_path()
             with self._connect() as connection:
+                self._restrict_to_owner(self._path, 0o600)
                 connection.execute(
                     """
                     CREATE TABLE IF NOT EXISTS cache_entries (
@@ -202,6 +204,22 @@ class SQLiteCache:
                 self._load_entries(connection)
         except (OSError, sqlite3.Error) as exc:
             self._disable_sqlite("initialize", exc)
+
+    def _secure_cache_path(self) -> None:
+        cache_directory = self._path.parent
+        cache_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if os.name != "posix":
+            return
+        if cache_directory.is_symlink() or self._path.is_symlink():
+            raise OSError("SQLite cache path must not use symbolic links")
+        self._restrict_to_owner(cache_directory, 0o700)
+        if self._path.exists():
+            self._restrict_to_owner(self._path, 0o600)
+
+    @staticmethod
+    def _restrict_to_owner(path: Path, mode: int) -> None:
+        if os.name == "posix":
+            path.chmod(mode)
 
     @property
     def path(self) -> Path:
@@ -290,6 +308,15 @@ class SQLiteCache:
         if self._sqlite_enabled:
             self._last_write = _SQLITE_WRITER.submit(self._persist_delete, namespace, key)
 
+    def _submit_touch(self, namespace: str, key: str, accessed_at: float) -> None:
+        if self._sqlite_enabled:
+            self._last_write = _SQLITE_WRITER.submit(
+                self._persist_touch,
+                namespace,
+                key,
+                accessed_at,
+            )
+
     def get(self, namespace: str, *key_parts: object) -> object | None:
         key = _composite_key(key_parts)
         now = time.time()
@@ -303,6 +330,7 @@ class SQLiteCache:
                 self._submit_delete(namespace, key)
                 return None
             self._entries[(namespace, key)] = (value, expires_at, now)
+        self._submit_touch(namespace, key, now)
         log.debug("cache hit ns=%s key=%s", namespace, key)
         return value
 
@@ -391,6 +419,21 @@ class SQLiteCache:
                 )
         except sqlite3.Error as exc:
             self._disable_sqlite("delete", exc)
+
+    def _persist_touch(self, namespace: str, key: str, accessed_at: float) -> None:
+        if not self._sqlite_enabled:
+            return
+        try:
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    UPDATE cache_entries SET accessed_at = ?
+                    WHERE partition = ? AND namespace = ? AND cache_key = ?
+                    """,
+                    (accessed_at, self._partition, namespace, key),
+                )
+        except sqlite3.Error as exc:
+            self._disable_sqlite("touch", exc)
 
     def invalidate(self, namespace: str | None = None) -> None:
         """Remove one namespace or all entries from both cache backends."""

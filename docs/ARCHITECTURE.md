@@ -55,6 +55,8 @@ restarts at `~/.cache/gfi-scout/cache.db`. SQLite corruption or lock errors
 degrade to the in-memory backend for that process instead of failing a tool.
 Entries are partitioned by a one-way credential hash, preventing one token or
 anonymous mode from reading another credential's cached repository data.
+On POSIX systems, the cache directory and database are restricted to the owner
+with `0700` and `0600` modes before authenticated responses are persisted.
 Runtime waits asynchronously for startup hydration before the first lookup;
 subsequent SQLite writes run in a background worker so lock contention cannot
 stall the event loop.
