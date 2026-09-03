@@ -22,7 +22,8 @@ Required environment:
 | Key | Description |
 |---|---|
 | `GITHUB_TOKEN` | GitHub PAT with read-only `public_repo` scope |
-| `CACHE_TTL_MINUTES` | Default in-memory cache TTL, default `30` |
+| `CACHE_TTL_MINUTES` | Default cache TTL, default `30` |
+| `CACHE_BACKEND` | Cache backend: `memory` (default) or persistent `sqlite` |
 | `MAX_CONCURRENT_REQUESTS` | Repo-health fan-out cap, default `5` |
 | `LOG_LEVEL` | Python logging level, default `info` |
 

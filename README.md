@@ -37,7 +37,7 @@ It ships as a [Model Context Protocol](https://modelcontextprotocol.io/) server,
 - ⏱️ **`check_issue_status`** — assignment, linked PRs, staleness, maintainer confirmation → `AVAILABLE` / `LIKELY_TAKEN` / `STALE` verdict
 - 📘 **`get_contribution_guide`** — pulls and summarises `CONTRIBUTING.md`, detects toolchain, estimates setup complexity
 - Terminal commands via **`gfi-scout-cli`** and an interactive **`gfi-scout-tui`**
-- ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache for repository search, issue listing, and repo-health probes
+- ⚡ Parallel GitHub API fan-out (`asyncio.gather`) + per-namespace TTL cache, with opt-in SQLite persistence across sessions
 - 🎛️ All scoring weights and thresholds live in [`src/gfi_scout/data/scoring_weights.json`](src/gfi_scout/data/scoring_weights.json) — no magic numbers in code
 - 🧪 100+ tests (unit + integration), `mypy --strict` clean, `ruff` clean
 
