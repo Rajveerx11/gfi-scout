@@ -8,6 +8,8 @@ and this project adheres to [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- GitHub API requests now retry once after short rate-limit delays (up to 10
+  seconds), including secondary-rate-limit responses without `Retry-After`.
 - **`--version` flag**: `gfi-scout --version` and `gfi-scout-cli --version`
   print the installed package version and exit.
 - **Tokenless mode**: `GITHUB_TOKEN` is now optional. Without a token the

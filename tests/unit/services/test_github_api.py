@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -167,7 +168,7 @@ async def test_search_issues_raises_on_4xx(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,
 ) -> None:
-    respx_mock.get("/search/issues").mock(
+    route = respx_mock.get("/search/issues").mock(
         return_value=httpx.Response(422, json={"message": "Validation Failed"})
     )
 
@@ -175,6 +176,111 @@ async def test_search_issues_raises_on_4xx(
         await github_client.search_issues("bad query")
 
     assert exc_info.value.status_code == 422
+    assert route.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_retries_once_then_succeeds(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        side_effect=[
+            httpx.Response(
+                429,
+                headers={"Retry-After": "2"},
+                json={"message": "Too many requests"},
+            ),
+            httpx.Response(200, json=sample_issues),
+        ]
+    )
+    sleep = AsyncMock()
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", sleep)
+
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="gfi_scout.services.github_api"):
+        result = await github_client.search_issues("q")
+
+    assert result.total_count == 2
+    assert route.call_count == 2
+    sleep.assert_awaited_once_with(2.0)
+    assert "github_api retry" in caplog.text
+    assert "status=429" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_gives_up_after_one_retry(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(
+            403,
+            headers={"Retry-After": "0", "X-RateLimit-Reset": "1700000000"},
+            json={"message": "API rate limit exceeded"},
+        )
+    )
+    sleep = AsyncMock()
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", sleep)
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert exc_info.value.status_code == 403
+    assert route.call_count == 2
+    sleep.assert_awaited_once_with(0.0)
+    assert "rate limit exceeded" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_secondary_rate_limit_retries_with_fallback_delay(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        side_effect=[
+            httpx.Response(
+                403,
+                json={"message": "You have exceeded a secondary rate limit."},
+            ),
+            httpx.Response(200, json=sample_issues),
+        ]
+    )
+    sleep = AsyncMock()
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", sleep)
+
+    result = await github_client.search_issues("q")
+
+    assert result.total_count == 2
+    assert route.call_count == 2
+    sleep.assert_awaited_once_with(1.0)
+
+
+@pytest.mark.asyncio
+async def test_long_retry_after_gives_up_without_retry(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(
+            429,
+            headers={"Retry-After": "60"},
+            json={"message": "Too many requests"},
+        )
+    )
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert exc_info.value.status_code == 429
+    assert route.call_count == 1
 
 
 @pytest.mark.asyncio

@@ -145,5 +145,7 @@ All tools raise on:
 - Invalid input (`ValidationError`)
 - Any non-2xx GitHub response except probed 404s (`GitHubAPIError`)
 
-GitHub rate-limit `403`s propagate as `GitHubAPIError` with `status_code=403`.
-Callers should fall back to cached results where possible.
+GitHub rate-limit `403` and `429` responses retry once when `Retry-After` is at
+most 10 seconds. Secondary-rate-limit responses without that header retry once
+after one second. Longer waits and repeated failures propagate as
+`GitHubAPIError`; callers should fall back to cached results where possible.
