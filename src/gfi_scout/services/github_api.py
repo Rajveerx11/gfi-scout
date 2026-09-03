@@ -147,13 +147,16 @@ class GitHubClient:
     def _cache_set(self, namespace: str, *parts: object, value: object) -> None:
         self._cache.set(namespace, *parts, value=value)
 
-    async def _reserve_retry(self, delay_seconds: float) -> float:
-        """Return delay for the next staggered per-client retry slot."""
+    async def _reserve_retry(self, delay_seconds: float) -> float | None:
+        """Return bounded delay for the next staggered per-client retry slot."""
         async with self._retry_schedule_lock:
             now = time.monotonic()
             retry_at = max(now + delay_seconds, self._next_retry_at)
+            scheduled_delay = retry_at - now
+            if scheduled_delay > MAX_RETRY_DELAY_SECONDS:
+                return None
             self._next_retry_at = retry_at + RETRY_STAGGER_SECONDS
-        return retry_at - now
+        return scheduled_delay
 
     async def _get_json(
         self,
@@ -199,6 +202,13 @@ class GitHubClient:
             if retry_delay is None:
                 break
             retry_delay = await self._reserve_retry(retry_delay)
+            if retry_delay is None:
+                log.warning(
+                    "github_api retry_skipped method=GET url=%s status=%s reason=delay_cap",
+                    url,
+                    response.status_code,
+                )
+                break
             log.warning(
                 "github_api retry method=GET url=%s status=%s delay_seconds=%.1f attempt=1",
                 url,
