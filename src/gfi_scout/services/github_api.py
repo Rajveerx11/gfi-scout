@@ -442,15 +442,17 @@ class GitHubClient:
         *,
         per_page: int = 30,
         page: int = 1,
+        refresh: bool = False,
     ) -> list[dict[str, Any]]:
         if per_page > MAX_PER_PAGE:
             per_page = MAX_PER_PAGE
         if page < 1:
             page = 1
         cache_key = (repo_full_name, number, per_page, page)
-        cached = self._cache_get(NS_ISSUE_COMMENTS, *cache_key)
-        if isinstance(cached, list):
-            return cached
+        if not refresh:
+            cached = self._cache_get(NS_ISSUE_COMMENTS, *cache_key)
+            if isinstance(cached, list):
+                return cached
         data = await self._get_json(
             f"/repos/{repo_full_name}/issues/{number}/comments",
             params={"per_page": per_page, "page": page},
@@ -480,6 +482,7 @@ class GitHubClient:
                 number,
                 per_page=limit,
                 page=page,
+                refresh=True,
             )
             comments.extend(batch)
             if len(batch) < limit:

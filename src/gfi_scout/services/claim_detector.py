@@ -61,6 +61,8 @@ def _contains_phrase(body: str, phrases: Sequence[str]) -> bool:
 def _contains_confirmation(body: str, config: ClaimPhraseConfig) -> bool:
     unquoted_lines = [line for line in body.splitlines() if not line.lstrip().startswith(">")]
     unquoted_body = QUOTED_TEXT_RE.sub(" ", "\n".join(unquoted_lines))
+    if "?" in unquoted_body or "？" in unquoted_body:
+        return False
     normalised_body = _normalise(MENTION_RE.sub(" ", unquoted_body))
 
     for phrase in config.maintainer_confirmation_phrases:

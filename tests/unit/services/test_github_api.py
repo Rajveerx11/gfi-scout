@@ -268,6 +268,34 @@ async def test_recent_issue_comments_follow_new_page_after_stale_count(
 
 
 @pytest.mark.asyncio
+async def test_recent_issue_comments_refresh_cached_short_page(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    cached_page_two = [{"id": comment_id} for comment_id in range(31, 60)]
+    fresh_page_two = [{"id": comment_id} for comment_id in range(31, 61)]
+    page_three = [{"id": 61}]
+    route = respx_mock.get("/repos/acme/widgets/issues/9/comments").mock(
+        side_effect=[
+            httpx.Response(200, json=cached_page_two),
+            httpx.Response(200, json=fresh_page_two),
+            httpx.Response(200, json=page_three),
+        ]
+    )
+    await github_client.list_issue_comments("acme/widgets", 9, per_page=30, page=2)
+
+    comments = await github_client.list_recent_issue_comments(
+        "acme/widgets",
+        9,
+        total_comments=60,
+        limit=30,
+    )
+
+    assert [comment["id"] for comment in comments] == list(range(32, 62))
+    assert [call.request.url.params.get("page") for call in route.calls] == ["2", "2", "3"]
+
+
+@pytest.mark.asyncio
 async def test_401_returns_helpful_token_message(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,

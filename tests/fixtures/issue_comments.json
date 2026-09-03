@@ -88,5 +88,18 @@
       "updated_at": "2026-08-01T11:00:00Z",
       "author_association": "COLLABORATOR"
     }
+  ],
+  "question_confirmation": [
+    {
+      "body": "I'll take this.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "jules"}
+    },
+    {
+      "body": "@jules, it's yours?",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    }
   ]
 }
