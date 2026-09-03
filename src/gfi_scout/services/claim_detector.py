@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from gfi_scout.models.claim import ClaimDetection, ClaimPhraseConfig
 
 MENTION_RE = re.compile(r"(?<![\w-])@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\b")
+QUOTED_TEXT_RE = re.compile(r'```.*?```|`[^`]*`|"[^"]*"|“[^”]*”', re.DOTALL)
 
 
 def _default_path() -> Path:
@@ -57,6 +58,20 @@ def _contains_phrase(body: str, phrases: Sequence[str]) -> bool:
     return any(f" {_normalise(phrase)} " in normalised_body for phrase in phrases)
 
 
+def _contains_confirmation(body: str, config: ClaimPhraseConfig) -> bool:
+    unquoted_lines = [line for line in body.splitlines() if not line.lstrip().startswith(">")]
+    unquoted_body = QUOTED_TEXT_RE.sub(" ", "\n".join(unquoted_lines))
+    normalised_body = _normalise(MENTION_RE.sub(" ", unquoted_body))
+
+    for phrase in config.maintainer_confirmation_phrases:
+        normalised_phrase = _normalise(phrase)
+        for prefix in config.confirmation_prefixes:
+            candidate = " ".join(part for part in (_normalise(prefix), normalised_phrase) if part)
+            if normalised_body == candidate:
+                return True
+    return False
+
+
 def _claimant_login(comment: Mapping[str, object]) -> str | None:
     user = comment.get("user")
     if not isinstance(user, Mapping):
@@ -88,7 +103,7 @@ def detect_claim(
         if association in config.maintainer_associations:
             if (
                 claim_detected
-                and _contains_phrase(body, config.maintainer_confirmation_phrases)
+                and _contains_confirmation(body, config)
                 and _confirmation_matches_claimant(body, claimant_logins)
             ):
                 maintainer_confirmed = True

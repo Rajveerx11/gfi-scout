@@ -107,11 +107,13 @@ phrases, and trusted GitHub author associations are configured in
 
 An otherwise available issue becomes `LIKELY_TAKEN` only when both signals are
 present: a non-maintainer comment contains a claim phrase and an owner, member,
-or collaborator later comments with a confirmation phrase. When comments
-identify both users, an explicit `@mention` must match the claimant. A claim
-without matching maintainer confirmation remains `AVAILABLE`. Assignment or
-linked/open competitor PR signals still independently produce `LIKELY_TAKEN`;
-staleness is evaluated afterward.
+or collaborator later comments with a standalone affirmative confirmation
+phrase. Quoted or context-setting uses are ignored. Allowed affirmative
+prefixes are also data-configured. When comments identify both users, an
+explicit `@mention` must match the claimant. A claim without matching
+maintainer confirmation remains `AVAILABLE`. Assignment or linked/open
+competitor PR signals still independently produce `LIKELY_TAKEN`; staleness is
+evaluated afterward.
 
 ## Repo health grading rules
 

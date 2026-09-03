@@ -62,5 +62,31 @@
       "updated_at": "2026-08-01T11:00:00Z",
       "author_association": "MEMBER"
     }
+  ],
+  "negated_confirmation": [
+    {
+      "body": "Working on this now.",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "hannah"}
+    },
+    {
+      "body": "It's yours? No, not yet.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "OWNER"
+    }
+  ],
+  "quoted_confirmation": [
+    {
+      "body": "Can I work on this?",
+      "updated_at": "2026-08-01T10:00:00Z",
+      "author_association": "NONE",
+      "user": {"login": "ivan"}
+    },
+    {
+      "body": "Please do not quote \"it's yours\" as approval.",
+      "updated_at": "2026-08-01T11:00:00Z",
+      "author_association": "COLLABORATOR"
+    }
   ]
 }
