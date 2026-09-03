@@ -147,5 +147,6 @@ All tools raise on:
 
 GitHub rate-limit `403` and `429` responses retry once when `Retry-After` is at
 most 10 seconds. Secondary-rate-limit responses without that header retry once
-after one second. Longer waits and repeated failures propagate as
-`GitHubAPIError`; callers should fall back to cached results where possible.
+after one second. A shared client staggers concurrent retries. Longer waits and
+repeated failures propagate as `GitHubAPIError`; callers should fall back to
+cached results where possible.

@@ -29,6 +29,7 @@ DEFAULT_TIMEOUT_SECONDS = 30.0
 MAX_PER_PAGE = 100
 MAX_RETRY_DELAY_SECONDS = 10.0
 SECONDARY_RATE_LIMIT_DELAY_SECONDS = 1.0
+RETRY_STAGGER_SECONDS = 0.1
 
 NS_SEARCH = "search_issues"
 NS_SEARCH_REPOS = "search_repositories"
@@ -120,6 +121,8 @@ class GitHubClient:
             timeout=timeout,
         )
         self._cache: Cache = cache if cache is not None else NullCache()
+        self._retry_schedule_lock = asyncio.Lock()
+        self._next_retry_at = 0.0
 
     async def __aenter__(self) -> Self:
         return self
@@ -143,6 +146,14 @@ class GitHubClient:
 
     def _cache_set(self, namespace: str, *parts: object, value: object) -> None:
         self._cache.set(namespace, *parts, value=value)
+
+    async def _reserve_retry(self, delay_seconds: float) -> float:
+        """Return delay for the next staggered per-client retry slot."""
+        async with self._retry_schedule_lock:
+            now = time.monotonic()
+            retry_at = max(now + delay_seconds, self._next_retry_at)
+            self._next_retry_at = retry_at + RETRY_STAGGER_SECONDS
+        return retry_at - now
 
     async def _get_json(
         self,
@@ -187,6 +198,7 @@ class GitHubClient:
             retry_delay = _retry_delay_seconds(response) if attempt == 0 else None
             if retry_delay is None:
                 break
+            retry_delay = await self._reserve_retry(retry_delay)
             log.warning(
                 "github_api retry method=GET url=%s status=%s delay_seconds=%.1f attempt=1",
                 url,

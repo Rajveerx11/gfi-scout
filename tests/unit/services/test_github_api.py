@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -261,6 +262,49 @@ async def test_secondary_rate_limit_retries_with_fallback_delay(
     assert result.total_count == 2
     assert route.call_count == 2
     sleep.assert_awaited_once_with(1.0)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_rate_limit_retries_are_staggered(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts: dict[str, int] = {}
+    both_rate_limited = asyncio.Event()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["q"]
+        attempts[query] = attempts.get(query, 0) + 1
+        if attempts[query] == 1:
+            if len(attempts) == 2:
+                both_rate_limited.set()
+            await both_rate_limited.wait()
+            return httpx.Response(
+                429,
+                headers={"Retry-After": "1"},
+                json={"message": "Too many requests"},
+            )
+        return httpx.Response(200, json=sample_issues)
+
+    route = respx_mock.get("/search/issues").mock(side_effect=respond)
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", record_sleep)
+    monkeypatch.setattr("gfi_scout.services.github_api.time.monotonic", lambda: 100.0)
+
+    results = await asyncio.gather(
+        github_client.search_issues("first"),
+        github_client.search_issues("second"),
+    )
+
+    assert [result.total_count for result in results] == [2, 2]
+    assert route.call_count == 4
+    assert delays == pytest.approx([1.0, 1.1])
 
 
 @pytest.mark.asyncio
