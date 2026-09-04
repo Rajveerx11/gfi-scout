@@ -8,6 +8,9 @@ and this project adheres to [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Opt-in persistent SQLite cache via `CACHE_BACKEND=sqlite`, stored at
+  `~/.cache/gfi-scout/cache.db`, with namespace TTLs and automatic in-memory
+  fallback when the database is corrupt or locked.
 - `check_issue_status` now detects contributor claims plus explicit maintainer
   confirmation from recent comments and surfaces `claim_detected`; confirmed
   claims produce a `LIKELY_TAKEN` verdict.

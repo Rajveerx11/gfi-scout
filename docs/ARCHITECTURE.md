@@ -48,10 +48,20 @@ serialise to a Pydantic model, return. Anything heavier belongs in
 
 ## Caching
 
-[`services/cache.py`](../src/gfi_scout/services/cache.py) provides
-`TTLNamespaceCache` — a thin wrapper over `cachetools.TTLCache` with a
-bucket per namespace. The `GitHubClient` reads namespace-keyed cache
-entries before every endpoint call and writes back on success.
+[`services/cache.py`](../src/gfi_scout/services/cache.py) provides an in-memory
+`TTLNamespaceCache` and opt-in persistent `SQLiteCache`. Both keep separate
+namespace TTLs. Set `CACHE_BACKEND=sqlite` to store entries across process
+restarts at `~/.cache/gfi-scout/cache.db`. SQLite corruption or lock errors
+degrade to the in-memory backend for that process instead of failing a tool.
+Entries are partitioned by a one-way credential hash, preventing one token or
+anonymous mode from reading another credential's cached repository data.
+On POSIX systems, the cache directory and database are restricted to the owner
+with `0700` and `0600` modes before authenticated responses are persisted.
+Runtime waits asynchronously for startup hydration before the first lookup;
+subsequent SQLite writes run in a background worker so lock contention cannot
+stall the event loop.
+The `GitHubClient` reads namespace-keyed cache entries before every endpoint
+call and writes back on success.
 
 Namespaces and default TTLs:
 
@@ -66,8 +76,7 @@ Namespaces and default TTLs:
 | `issue` / `issue_comments` / `issue_timeline` | 5 min | Issue status must be fresh-ish |
 | `repo_content` | 1 hr | CONTRIBUTING / README change rarely |
 
-Cache is in-memory only — a Redis backend can be slotted in later by
-implementing the `Cache` protocol.
+Other backends can be slotted in later by implementing the `Cache` protocol.
 
 ## Scoring
 
