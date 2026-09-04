@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -33,6 +33,12 @@ _respx_active: bool = False
 def sample_issues() -> dict[str, Any]:
     with (FIXTURES / "sample_issues.json").open(encoding="utf-8") as fp:
         return json.load(fp)
+
+
+@pytest.fixture
+def issue_comments() -> dict[str, list[dict[str, object]]]:
+    with (FIXTURES / "issue_comments.json").open(encoding="utf-8") as fp:
+        return cast(dict[str, list[dict[str, object]]], json.load(fp))
 
 
 @pytest.fixture
