@@ -502,21 +502,71 @@ class GitHubClient:
         number: int,
         *,
         per_page: int = 30,
+        page: int = 1,
+        refresh: bool = False,
     ) -> list[dict[str, Any]]:
         if per_page > MAX_PER_PAGE:
             per_page = MAX_PER_PAGE
-        cache_key = (repo_full_name, number, per_page)
-        cached = self._cache_get(NS_ISSUE_COMMENTS, *cache_key)
-        if isinstance(cached, list):
-            return cached
+        if page < 1:
+            page = 1
+        cache_key = (repo_full_name, number, per_page, page)
+        if not refresh:
+            cached = self._cache_get(NS_ISSUE_COMMENTS, *cache_key)
+            if isinstance(cached, list):
+                return cached
         data = await self._get_json(
             f"/repos/{repo_full_name}/issues/{number}/comments",
-            params={"per_page": per_page},
+            params={"per_page": per_page, "page": page},
             allow_404=True,
         )
         result = list(data) if isinstance(data, list) else []
         self._cache_set(NS_ISSUE_COMMENTS, *cache_key, value=result)
         return result
+
+    async def list_recent_issue_comments(
+        self,
+        repo_full_name: str,
+        number: int,
+        *,
+        total_comments: int,
+        limit: int = 30,
+    ) -> list[dict[str, Any]]:
+        """Return the latest issue comments in ascending conversation order."""
+        limit = min(MAX_PER_PAGE, max(1, limit))
+        last_page = max(1, (total_comments - 1) // limit + 1)
+        page = last_page - 1 if last_page > 1 and total_comments % limit else last_page
+        comments: list[dict[str, Any]] = []
+        fetched_pages: dict[int, list[dict[str, Any]]] = {}
+
+        async def fetch_page(page_number: int) -> list[dict[str, Any]]:
+            if page_number not in fetched_pages:
+                fetched_pages[page_number] = await self.list_issue_comments(
+                    repo_full_name,
+                    number,
+                    per_page=limit,
+                    page=page_number,
+                    refresh=True,
+                )
+            return fetched_pages[page_number]
+
+        batch = await fetch_page(page)
+        while not batch and page > 1:
+            page -= 1
+            batch = await fetch_page(page)
+
+        first_page = page
+        while True:
+            comments.extend(batch)
+            if len(batch) < limit:
+                break
+            page += 1
+            batch = await fetch_page(page)
+
+        while len(comments) < limit and first_page > 1:
+            first_page -= 1
+            comments = [*(await fetch_page(first_page)), *comments]
+
+        return comments[-limit:]
 
     async def list_issue_timeline(
         self,

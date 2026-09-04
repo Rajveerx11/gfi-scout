@@ -137,6 +137,7 @@ def render_status(status: IssueStatus, *, out: Console = console) -> None:
     table.add_row("Assigned", "yes" if status.is_assigned else "no")
     table.add_row("Linked PR", "yes" if status.has_linked_pr else "no")
     table.add_row("Competitor PRs", str(status.competitor_prs))
+    table.add_row("Claim detected", "yes" if status.claim_detected else "no")
     table.add_row("Maintainer confirmed", "yes" if status.maintainer_confirmed else "no")
     table.add_row("Stale", "yes" if status.is_stale else "no")
     table.add_row("Last activity", _date(status.last_activity))

@@ -8,6 +8,9 @@ and this project adheres to [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `check_issue_status` now detects contributor claims plus explicit maintainer
+  confirmation from recent comments and surfaces `claim_detected`; confirmed
+  claims produce a `LIKELY_TAKEN` verdict.
 - GitHub API requests now retry once after short rate-limit delays (up to 10
   seconds), including secondary-rate-limit responses without `Retry-After`.
   Concurrent retries are staggered within the same delay cap to avoid

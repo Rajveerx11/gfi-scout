@@ -76,6 +76,7 @@ class IssueStatus(BaseModel):
     last_activity: datetime | None
     is_stale: bool
     competitor_prs: int
+    claim_detected: bool
     maintainer_confirmed: bool
     availability_verdict: str
     notes: list[str] = Field(default_factory=list)
