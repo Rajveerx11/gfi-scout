@@ -8,6 +8,7 @@ namespace-scoped TTL caching.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import time
 from datetime import UTC, datetime
@@ -26,6 +27,9 @@ GITHUB_API_BASE = "https://api.github.com"
 GITHUB_API_VERSION = "2022-11-28"
 DEFAULT_TIMEOUT_SECONDS = 30.0
 MAX_PER_PAGE = 100
+MAX_RETRY_DELAY_SECONDS = 10.0
+SECONDARY_RATE_LIMIT_DELAY_SECONDS = 1.0
+RETRY_STAGGER_SECONDS = 0.1
 
 NS_SEARCH = "search_issues"
 NS_SEARCH_REPOS = "search_repositories"
@@ -50,6 +54,26 @@ def _format_reset_time(reset_header: str | None) -> str:
     except (TypeError, ValueError):
         return "unknown time"
     return datetime.fromtimestamp(epoch, tz=UTC).isoformat()
+
+
+def _retry_delay_seconds(response: httpx.Response) -> float | None:
+    """Return a short rate-limit retry delay, or None when retrying is unsafe."""
+    if response.status_code not in (403, 429):
+        return None
+
+    retry_after = response.headers.get("Retry-After")
+    if retry_after is not None:
+        try:
+            delay = float(retry_after)
+        except ValueError:
+            return None
+        if 0 <= delay <= MAX_RETRY_DELAY_SECONDS:
+            return delay
+        return None
+
+    if "secondary rate limit" in response.text.lower():
+        return SECONDARY_RATE_LIMIT_DELAY_SECONDS
+    return None
 
 
 class GitHubAPIError(RuntimeError):
@@ -97,6 +121,8 @@ class GitHubClient:
             timeout=timeout,
         )
         self._cache: Cache = cache if cache is not None else NullCache()
+        self._retry_schedule_lock = asyncio.Lock()
+        self._next_retry_at = 0.0
 
     async def __aenter__(self) -> Self:
         return self
@@ -121,6 +147,17 @@ class GitHubClient:
     def _cache_set(self, namespace: str, *parts: object, value: object) -> None:
         self._cache.set(namespace, *parts, value=value)
 
+    async def _reserve_retry(self, delay_seconds: float) -> float | None:
+        """Return bounded delay for the next staggered per-client retry slot."""
+        async with self._retry_schedule_lock:
+            now = time.monotonic()
+            retry_at = max(now + delay_seconds, self._next_retry_at)
+            scheduled_delay = retry_at - now
+            if scheduled_delay > MAX_RETRY_DELAY_SECONDS:
+                return None
+            self._next_retry_at = retry_at + RETRY_STAGGER_SECONDS
+        return scheduled_delay
+
     async def _get_json(
         self,
         url: str,
@@ -128,36 +165,60 @@ class GitHubClient:
         params: dict[str, Any] | None = None,
         allow_404: bool = False,
     ) -> Any | None:
-        start = time.perf_counter()
-        try:
-            response = await self._client.get(url, params=params)
-        except httpx.RequestError as exc:
-            duration_ms = (time.perf_counter() - start) * 1000
-            log.error(
-                "github_api method=GET url=%s status=- duration_ms=%.1f error=%s",
-                url,
-                duration_ms,
-                exc,
-            )
-            raise GitHubAPIError(
-                0,
-                "Could not connect to GitHub API. Check your internet connection.",
-                url=url,
-            ) from exc
+        response: httpx.Response | None = None
+        for attempt in range(2):
+            start = time.perf_counter()
+            try:
+                response = await self._client.get(url, params=params)
+            except httpx.RequestError as exc:
+                duration_ms = (time.perf_counter() - start) * 1000
+                log.error(
+                    "github_api method=GET url=%s status=- duration_ms=%.1f error=%s",
+                    url,
+                    duration_ms,
+                    exc,
+                )
+                raise GitHubAPIError(
+                    0,
+                    "Could not connect to GitHub API. Check your internet connection.",
+                    url=url,
+                ) from exc
 
-        duration_ms = (time.perf_counter() - start) * 1000
-        rate_remaining = response.headers.get("X-RateLimit-Remaining")
+            duration_ms = (time.perf_counter() - start) * 1000
+            rate_remaining = response.headers.get("X-RateLimit-Remaining")
+            rate_reset = response.headers.get("X-RateLimit-Reset")
+            log.info(
+                "github_api method=GET url=%s status=%s duration_ms=%.1f "
+                "rate_remaining=%s rate_reset=%s params=%s",
+                url,
+                response.status_code,
+                duration_ms,
+                rate_remaining,
+                rate_reset,
+                params,
+            )
+
+            retry_delay = _retry_delay_seconds(response) if attempt == 0 else None
+            if retry_delay is None:
+                break
+            retry_delay = await self._reserve_retry(retry_delay)
+            if retry_delay is None:
+                log.warning(
+                    "github_api retry_skipped method=GET url=%s status=%s reason=delay_cap",
+                    url,
+                    response.status_code,
+                )
+                break
+            log.warning(
+                "github_api retry method=GET url=%s status=%s delay_seconds=%.1f attempt=1",
+                url,
+                response.status_code,
+                retry_delay,
+            )
+            await asyncio.sleep(retry_delay)
+
+        assert response is not None
         rate_reset = response.headers.get("X-RateLimit-Reset")
-        log.info(
-            "github_api method=GET url=%s status=%s duration_ms=%.1f "
-            "rate_remaining=%s rate_reset=%s params=%s",
-            url,
-            response.status_code,
-            duration_ms,
-            rate_remaining,
-            rate_reset,
-            params,
-        )
 
         status = response.status_code
         if 200 <= status < 300:
