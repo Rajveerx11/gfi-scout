@@ -11,6 +11,10 @@ and this project adheres to [SemVer](https://semver.org/).
 - Opt-in persistent SQLite cache via `CACHE_BACKEND=sqlite`, stored at
   `~/.cache/gfi-scout/cache.db`, with namespace TTLs and automatic in-memory
   fallback when the database is corrupt or locked.
+- GitHub API requests now retry once after short rate-limit delays (up to 10
+  seconds), including secondary-rate-limit responses without `Retry-After`.
+  Concurrent retries are staggered within the same delay cap to avoid
+  recreating the throttled burst or extending bounded waits.
 - **`--version` flag**: `gfi-scout --version` and `gfi-scout-cli --version`
   print the installed package version and exit.
 - **Tokenless mode**: `GITHUB_TOKEN` is now optional. Without a token the

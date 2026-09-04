@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -167,7 +169,7 @@ async def test_search_issues_raises_on_4xx(
     respx_mock: respx.MockRouter,
     github_client: GitHubClient,
 ) -> None:
-    respx_mock.get("/search/issues").mock(
+    route = respx_mock.get("/search/issues").mock(
         return_value=httpx.Response(422, json={"message": "Validation Failed"})
     )
 
@@ -175,6 +177,200 @@ async def test_search_issues_raises_on_4xx(
         await github_client.search_issues("bad query")
 
     assert exc_info.value.status_code == 422
+    assert route.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_retries_once_then_succeeds(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        side_effect=[
+            httpx.Response(
+                429,
+                headers={"Retry-After": "2"},
+                json={"message": "Too many requests"},
+            ),
+            httpx.Response(200, json=sample_issues),
+        ]
+    )
+    sleep = AsyncMock()
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", sleep)
+
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="gfi_scout.services.github_api"):
+        result = await github_client.search_issues("q")
+
+    assert result.total_count == 2
+    assert route.call_count == 2
+    sleep.assert_awaited_once_with(2.0)
+    assert "github_api retry" in caplog.text
+    assert "status=429" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_gives_up_after_one_retry(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(
+            403,
+            headers={"Retry-After": "0", "X-RateLimit-Reset": "1700000000"},
+            json={"message": "API rate limit exceeded"},
+        )
+    )
+    sleep = AsyncMock()
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", sleep)
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert exc_info.value.status_code == 403
+    assert route.call_count == 2
+    sleep.assert_awaited_once_with(0.0)
+    assert "rate limit exceeded" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_secondary_rate_limit_retries_with_fallback_delay(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        side_effect=[
+            httpx.Response(
+                403,
+                json={"message": "You have exceeded a secondary rate limit."},
+            ),
+            httpx.Response(200, json=sample_issues),
+        ]
+    )
+    sleep = AsyncMock()
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", sleep)
+
+    result = await github_client.search_issues("q")
+
+    assert result.total_count == 2
+    assert route.call_count == 2
+    sleep.assert_awaited_once_with(1.0)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_rate_limit_retries_are_staggered(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts: dict[str, int] = {}
+    both_rate_limited = asyncio.Event()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["q"]
+        attempts[query] = attempts.get(query, 0) + 1
+        if attempts[query] == 1:
+            if len(attempts) == 2:
+                both_rate_limited.set()
+            await both_rate_limited.wait()
+            return httpx.Response(
+                429,
+                headers={"Retry-After": "1"},
+                json={"message": "Too many requests"},
+            )
+        return httpx.Response(200, json=sample_issues)
+
+    route = respx_mock.get("/search/issues").mock(side_effect=respond)
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", record_sleep)
+    monkeypatch.setattr("gfi_scout.services.github_api.time.monotonic", lambda: 100.0)
+
+    results = await asyncio.gather(
+        github_client.search_issues("first"),
+        github_client.search_issues("second"),
+    )
+
+    assert [result.total_count for result in results] == [2, 2]
+    assert route.call_count == 4
+    assert delays == pytest.approx([1.0, 1.1])
+
+
+@pytest.mark.asyncio
+async def test_concurrent_retry_schedule_stays_within_delay_cap(
+    respx_mock: respx.MockRouter,
+    sample_issues: dict[str, Any],
+    github_client: GitHubClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts: dict[str, int] = {}
+    all_rate_limited = asyncio.Event()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["q"]
+        attempts[query] = attempts.get(query, 0) + 1
+        if attempts[query] == 1:
+            if len(attempts) == 3:
+                all_rate_limited.set()
+            await all_rate_limited.wait()
+            return httpx.Response(
+                429,
+                headers={"Retry-After": "9.9"},
+                json={"message": "Too many requests"},
+            )
+        return httpx.Response(200, json=sample_issues)
+
+    route = respx_mock.get("/search/issues").mock(side_effect=respond)
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("gfi_scout.services.github_api.asyncio.sleep", record_sleep)
+    monkeypatch.setattr("gfi_scout.services.github_api.time.monotonic", lambda: 100.0)
+
+    results = await asyncio.gather(
+        github_client.search_issues("first"),
+        github_client.search_issues("second"),
+        github_client.search_issues("third"),
+        return_exceptions=True,
+    )
+
+    assert sum(isinstance(result, GitHubAPIError) for result in results) == 1
+    assert route.call_count == 5
+    assert delays == pytest.approx([9.9, 10.0])
+    assert max(delays) <= 10.0
+
+
+@pytest.mark.asyncio
+async def test_long_retry_after_gives_up_without_retry(
+    respx_mock: respx.MockRouter,
+    github_client: GitHubClient,
+) -> None:
+    route = respx_mock.get("/search/issues").mock(
+        return_value=httpx.Response(
+            429,
+            headers={"Retry-After": "60"},
+            json={"message": "Too many requests"},
+        )
+    )
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        await github_client.search_issues("q")
+
+    assert exc_info.value.status_code == 429
+    assert route.call_count == 1
 
 
 @pytest.mark.asyncio
